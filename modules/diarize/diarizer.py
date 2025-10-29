@@ -6,7 +6,7 @@ import time
 import logging
 import gc
 
-from modules.utils.paths import DIARIZATION_MODELS_DIR
+from modules.utils.paths import WHISPERX_MODELS_DIR
 from modules.diarize.diarize_pipeline import DiarizationPipeline, assign_word_speakers
 from modules.diarize.audio_loader import load_audio
 from modules.whisper.data_classes import *
@@ -14,12 +14,12 @@ from modules.whisper.data_classes import *
 
 class Diarizer:
     def __init__(self,
-                 model_dir: str = DIARIZATION_MODELS_DIR
+                 model_dir: Optional[str] = None
                  ):
         self.device = self.get_device()
         self.available_device = self.get_available_device()
         self.compute_type = "float16"
-        self.model_dir = model_dir
+        self.model_dir = model_dir or os.path.join(WHISPERX_MODELS_DIR, "diarization")
         os.makedirs(self.model_dir, exist_ok=True)
         self.pipe = None
 

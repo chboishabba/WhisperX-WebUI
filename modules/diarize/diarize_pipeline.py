@@ -8,7 +8,7 @@ from typing import Optional, Union
 import torch
 
 from modules.whisper.data_classes import *
-from modules.utils.paths import DIARIZATION_MODELS_DIR
+from modules.utils.paths import WHISPERX_MODELS_DIR
 from modules.diarize.audio_loader import load_audio, SAMPLE_RATE
 
 
@@ -16,10 +16,11 @@ class DiarizationPipeline:
     def __init__(
         self,
         model_name="pyannote/speaker-diarization-3.1",
-        cache_dir: str = DIARIZATION_MODELS_DIR,
+        cache_dir: Optional[str] = None,
         use_auth_token=None,
         device: Optional[Union[str, torch.device]] = "cpu",
     ):
+        cache_dir = cache_dir or os.path.join(WHISPERX_MODELS_DIR, "diarization")
         if isinstance(device, str):
             device = torch.device(device)
         self.model = Pipeline.from_pretrained(
