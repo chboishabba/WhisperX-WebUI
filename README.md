@@ -32,6 +32,7 @@ If you wish to try this on Colab, you can do it in [here](https://colab.research
    - To download the pyannote model, you need to have a Huggingface token and manually accept their terms in the pages below.
       1. https://huggingface.co/pyannote/speaker-diarization-3.1
       2. https://huggingface.co/pyannote/segmentation-3.0
+- Word-level alignment and diarization powered by [WhisperX](https://github.com/m-bain/whisperX) for precise timestamps.
 
 ### Pipeline Diagram
 ![Transcription Pipeline](https://github.com/user-attachments/assets/1d8c63ac-72a4-4a0b-9db0-e03695dcf088)
@@ -98,6 +99,34 @@ git clone https://github.com/jhj0517/Whisper-WebUI.git
 3. Start WebUI with `start-webui.bat` or `start-webui.sh` (It will run `python app.py` after activating the venv)
 
 And you can also run the project with command line arguments if you like to, see [wiki](https://github.com/jhj0517/Whisper-WebUI/wiki/Command-Line-Arguments) for a guide to arguments.
+
+# WhisperX Alignment & Diarization
+
+Whisper-WebUI now bundles [WhisperX](https://github.com/m-bain/whisperX) so you can generate accurate word-level timestamps and automatically assign speaker labels in a single pass. The Python dependencies (`whisperx`, `onnxruntime-gpu`, and compatible `pyannote.audio`) are installed automatically when you run `pip install -r requirements.txt` or build the Docker images.
+
+## Hardware and model downloads
+
+- **Device considerations:** The diarization pipeline loads PyTorch models and prefers GPU execution when CUDA/XPU/MPS are available, falling back to CPU otherwise. Factor the additional memory footprint into your sizing when you enable diarization or word-level timestamps.
+- **Model cache:** alignment and diarization weights are cached under `models/Diarization/`. Make sure the container or local runtime has write access to this directory so the downloads persist between runs.
+
+## Hugging Face access token
+
+The pyannote diarization models require you to accept their license and authenticate with a Hugging Face access token.
+
+1. Visit the model cards for [pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1) and [pyannote/segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0) and accept the usage terms.
+2. Generate a token with **read** access from your Hugging Face account settings.
+3. Provide the token to Whisper-WebUI by either:
+   - Setting an environment variable before launch: `export HF_TOKEN=hf_xxx` (Linux/macOS) or `set HF_TOKEN=hf_xxx` (Windows PowerShell: `$Env:HF_TOKEN="hf_xxx"`).
+   - Entering the token in the **Diarization → HuggingFace Token** field inside the UI the first time you download the model.
+
+When running with Docker Compose, you can pass the token with `HF_TOKEN=hf_xxx docker compose up` so the container inherits the environment variable.
+
+For the backend service, add the same token to `backend/configs/.env` (see the backend README for details).
+
+## Enabling WhisperX features
+
+- **Word alignment:** Open the **Advanced Parameters** accordion and enable **Word Timestamps**. Word-level timestamps will be exported to SRT/WebVTT and highlighted in the UI.
+- **Speaker diarization:** Expand the **Diarization** accordion, enable diarization, and choose the device (GPU recommended). If you supplied `HF_TOKEN`, the WebUI will download and cache the pyannote pipeline automatically.
 
 # VRAM Usages
 This project is integrated with [faster-whisper](https://github.com/guillaumekln/faster-whisper) by default for better VRAM usage and transcription speed.
