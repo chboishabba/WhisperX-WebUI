@@ -85,8 +85,47 @@ class App:
 
         with gr.Accordion(_("Diarization"), open=False):
             diarization_inputs = DiarizationParams.to_gradio_inputs(defaults=diarization_params,
-                                                                    available_devices=self.whisper_inf.diarizer.available_device,
+                                                                    available_devices=self.whisper_inf.diarizer.available_devices,
                                                                     device=self.whisper_inf.diarizer.device)
+
+        whisper_offload_component = whisper_inputs.pop() if whisper_inputs else None
+        diarization_offload_component = diarization_inputs.pop() if diarization_inputs else None
+
+        with gr.Accordion(_("WhisperX Alignment & Speaker Tags"), open=False):
+            cb_whisperx_alignment = gr.Checkbox(
+                value=whisper_params.get("enable_whisperx_alignment", False),
+                label=_("Enable WhisperX Alignment"),
+                info=_("Refine word-level timestamps using WhisperX"),
+                interactive=True,
+            )
+            sl_whisperx_confidence = gr.Slider(
+                minimum=0.0,
+                maximum=1.0,
+                step=0.01,
+                value=whisper_params.get("whisperx_confidence_threshold", 0.0),
+                label=_("WhisperX Minimum Word Confidence"),
+                info=_("Discard aligned words below this WhisperX confidence score"),
+            )
+            cb_assign_word_speakers = gr.Checkbox(
+                value=diarization_params.get("assign_word_speakers", False),
+                label=_("Tag Words With Speaker Labels"),
+                info=_("Add diarization speaker tags to each aligned word"),
+                interactive=True,
+            )
+            cb_fill_nearest_speaker = gr.Checkbox(
+                value=diarization_params.get("fill_nearest_speaker", False),
+                label=_("Fallback to Nearest Speaker When No Overlap"),
+                info=_("Use the closest diarization segment when a word has no overlap"),
+                interactive=True,
+            )
+
+        whisper_inputs.extend([cb_whisperx_alignment, sl_whisperx_confidence])
+        if whisper_offload_component is not None:
+            whisper_inputs.append(whisper_offload_component)
+
+        diarization_inputs.extend([cb_assign_word_speakers, cb_fill_nearest_speaker])
+        if diarization_offload_component is not None:
+            diarization_inputs.append(diarization_offload_component)
 
         pipeline_inputs = [dd_model, dd_lang, cb_translate] + whisper_inputs + vad_inputs + diarization_inputs + uvr_inputs
 
