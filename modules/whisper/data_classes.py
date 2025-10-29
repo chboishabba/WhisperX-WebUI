@@ -16,6 +16,7 @@ class WhisperImpl(Enum):
     WHISPER = "whisper"
     FASTER_WHISPER = "faster-whisper"
     INSANELY_FAST_WHISPER = "insanely_fast_whisper"
+    WHISPERX = "whisperx"
 
 
 class Segment(BaseModel):
@@ -24,6 +25,7 @@ class Segment(BaseModel):
     text: Optional[str] = Field(default=None, description="Transcription text of the segment")
     start: Optional[float] = Field(default=None, description="Start time of the segment")
     end: Optional[float] = Field(default=None, description="End time of the segment")
+    speaker: Optional[str] = Field(default=None, description="Speaker label for the segment")
     tokens: Optional[List[int]] = Field(default=None, description="List of token IDs")
     temperature: Optional[float] = Field(default=None, description="Temperature used during the decoding process")
     avg_logprob: Optional[float] = Field(default=None, description="Average log probability of the tokens")
@@ -53,6 +55,7 @@ class Segment(BaseModel):
             text=seg.text,
             start=seg.start,
             end=seg.end,
+            speaker=None,
             tokens=seg.tokens,
             temperature=seg.temperature,
             avg_logprob=seg.avg_logprob,
@@ -162,9 +165,13 @@ class DiarizationParams(BaseParams):
         default="",
         description="Hugging Face token for downloading diarization models"
     )
-    use_whisperx_diarization: bool = Field(
+    assign_word_speakers: bool = Field(
         default=False,
-        description="Use WhisperX diarization pipeline for speaker attribution"
+        description="Attach speaker labels to aligned words"
+    )
+    fill_nearest_speaker: bool = Field(
+        default=False,
+        description="When no overlap exists, tag the nearest diarization speaker"
     )
     enable_offload: bool = Field(
         default=True,
@@ -353,6 +360,16 @@ class WhisperParams(BaseParams):
         description="Number of segments for language detection"
     )
     batch_size: int = Field(default=24, gt=0, description="Batch size for processing")
+    enable_whisperx_alignment: bool = Field(
+        default=False,
+        description="Enable WhisperX to refine word-level timestamps"
+    )
+    whisperx_confidence_threshold: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Minimum WhisperX confidence score to keep aligned words"
+    )
     enable_offload: bool = Field(
         default=True,
         description="Offload Whisper model after transcription"

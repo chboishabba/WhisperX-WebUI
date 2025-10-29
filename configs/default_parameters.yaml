@@ -32,6 +32,8 @@ whisper:
   language_detection_threshold: 0.5
   language_detection_segments: 1
   add_timestamp: false
+  enable_whisperx_alignment: false
+  whisperx_confidence_threshold: 0.0
   enable_offload: true
 
 vad:
@@ -46,6 +48,8 @@ diarization:
   is_diarize: false
   hf_token: ""
   use_whisperx_diarization: false
+  assign_word_speakers: false
+  fill_nearest_speaker: false
   enable_offload: true
 
 bgm_separation:

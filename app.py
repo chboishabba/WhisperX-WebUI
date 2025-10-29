@@ -5,8 +5,8 @@ from gradio_i18n import Translate, gettext as _
 import yaml
 
 from modules.utils.paths import (FASTER_WHISPER_MODELS_DIR, DIARIZATION_MODELS_DIR, OUTPUT_DIR, WHISPER_MODELS_DIR,
-                                 INSANELY_FAST_WHISPER_MODELS_DIR, NLLB_MODELS_DIR, DEFAULT_PARAMETERS_CONFIG_PATH,
-                                 UVR_MODELS_DIR, I18N_YAML_PATH)
+                                 INSANELY_FAST_WHISPER_MODELS_DIR, NLLB_MODELS_DIR, WHISPERX_MODELS_DIR,
+                                 DEFAULT_PARAMETERS_CONFIG_PATH, UVR_MODELS_DIR, I18N_YAML_PATH)
 from modules.utils.files_manager import load_yaml, MEDIA_EXTENSION
 from modules.whisper.whisper_factory import WhisperFactory
 from modules.translation.nllb_inference import NLLBInference
@@ -31,6 +31,7 @@ class App:
             whisper_model_dir=self.args.whisper_model_dir,
             faster_whisper_model_dir=self.args.faster_whisper_model_dir,
             insanely_fast_whisper_model_dir=self.args.insanely_fast_whisper_model_dir,
+            whisperx_model_dir=getattr(self.args, "whisperx_model_dir", WHISPERX_MODELS_DIR),
             uvr_model_dir=self.args.uvr_model_dir,
             output_dir=self.args.output_dir,
         )
@@ -84,8 +85,47 @@ class App:
 
         with gr.Accordion(_("Diarization"), open=False):
             diarization_inputs = DiarizationParams.to_gradio_inputs(defaults=diarization_params,
-                                                                    available_devices=self.whisper_inf.diarizer.available_device,
+                                                                    available_devices=self.whisper_inf.diarizer.available_devices,
                                                                     device=self.whisper_inf.diarizer.device)
+
+        whisper_offload_component = whisper_inputs.pop() if whisper_inputs else None
+        diarization_offload_component = diarization_inputs.pop() if diarization_inputs else None
+
+        with gr.Accordion(_("WhisperX Alignment & Speaker Tags"), open=False):
+            cb_whisperx_alignment = gr.Checkbox(
+                value=whisper_params.get("enable_whisperx_alignment", False),
+                label=_("Enable WhisperX Alignment"),
+                info=_("Refine word-level timestamps using WhisperX"),
+                interactive=True,
+            )
+            sl_whisperx_confidence = gr.Slider(
+                minimum=0.0,
+                maximum=1.0,
+                step=0.01,
+                value=whisper_params.get("whisperx_confidence_threshold", 0.0),
+                label=_("WhisperX Minimum Word Confidence"),
+                info=_("Discard aligned words below this WhisperX confidence score"),
+            )
+            cb_assign_word_speakers = gr.Checkbox(
+                value=diarization_params.get("assign_word_speakers", False),
+                label=_("Tag Words With Speaker Labels"),
+                info=_("Add diarization speaker tags to each aligned word"),
+                interactive=True,
+            )
+            cb_fill_nearest_speaker = gr.Checkbox(
+                value=diarization_params.get("fill_nearest_speaker", False),
+                label=_("Fallback to Nearest Speaker When No Overlap"),
+                info=_("Use the closest diarization segment when a word has no overlap"),
+                interactive=True,
+            )
+
+        whisper_inputs.extend([cb_whisperx_alignment, sl_whisperx_confidence])
+        if whisper_offload_component is not None:
+            whisper_inputs.append(whisper_offload_component)
+
+        diarization_inputs.extend([cb_assign_word_speakers, cb_fill_nearest_speaker])
+        if diarization_offload_component is not None:
+            diarization_inputs.append(diarization_offload_component)
 
         pipeline_inputs = [dd_model, dd_lang, cb_translate] + whisper_inputs + vad_inputs + diarization_inputs + uvr_inputs
 
@@ -359,6 +399,8 @@ parser.add_argument('--faster_whisper_model_dir', type=str, default=FASTER_WHISP
 parser.add_argument('--insanely_fast_whisper_model_dir', type=str,
                     default=INSANELY_FAST_WHISPER_MODELS_DIR,
                     help='Directory path of the insanely-fast-whisper model')
+parser.add_argument('--whisperx_model_dir', type=str, default=WHISPERX_MODELS_DIR,
+                    help='Directory path of the WhisperX model assets')
 parser.add_argument('--diarization_model_dir', type=str, default=DIARIZATION_MODELS_DIR,
                     help='Directory path of the diarization model')
 parser.add_argument('--nllb_model_dir', type=str, default=NLLB_MODELS_DIR,

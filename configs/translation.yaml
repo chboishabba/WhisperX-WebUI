@@ -26,6 +26,15 @@ en:
     and "https://huggingface.co/pyannote/segmentation-3.0" and agree to their requirement.
   HuggingFace Token: HuggingFace Token
   Diarization: Diarization
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: GENERATE SUBTITLE FILE
   Output: Output
   Downloadable output file: Downloadable output file
@@ -76,6 +85,15 @@ ko:
     와 "https://huggingface.co/pyannote/segmentation-3.0" 에서 먼저 사용 지침에 동의하셔야 합니다.
   HuggingFace Token: 허깅페이스 토큰
   Diarization: 화자 구분
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: 자막 파일 생성
   Output: 결과물
   Downloadable output file: 결과물 파일 다운로드
@@ -128,6 +146,15 @@ ja:
     and "https://huggingface.co/pyannote/segmentation-3.0" and agree to their requirement.
   HuggingFace Token: HuggingFace Token
   Diarization: Diarization
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: GENERATE SUBTITLE FILE
   Output: Output
   Downloadable output file: Downloadable output file
@@ -181,6 +208,15 @@ es:
     and "https://huggingface.co/pyannote/segmentation-3.0" and agree to their requirement.
   HuggingFace Token: HuggingFace Token
   Diarization: Diarization
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: GENERATE SUBTITLE FILE
   Output: Output
   Downloadable output file: Downloadable output file
@@ -237,6 +273,15 @@ fr:
     et accepter leurs conditions.
   HuggingFace Token: Token HuggingFace
   Diarization: Diarisation
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: GÉNÉRER UN FICHIER DE SOUS-TITRES
   Output: Sortie
   Downloadable output file: Fichier de sortie téléchargeable
@@ -292,6 +337,15 @@ de:
     besuchen und deren Anforderungen zustimmen.
   HuggingFace Token: HuggingFace-Token
   Diarization: Diarisierung
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: UNTERTITELDATEI ERSTELLEN
   Output: Ausgabe
   Downloadable output file: Herunterladbare Ausgabedatei
@@ -345,6 +399,15 @@ nl:
     gaan en daar de voorwaarden accepteren.
   HuggingFace Token: HuggingFace-token
   Diarization: Diarisatie
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: ONDERTITELINGSBESTAND GENEREREN
   Output: Resultaat
   Downloadable output file: Downloadbaar resultaat
@@ -394,6 +457,15 @@ zh:
     上同意他们的使用条款。
   HuggingFace Token: HuggingFace令牌
   Diarization: 说话人分离设置
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: 生成字幕文件
   Output: 输出
   Downloadable output file: 生成的字幕文件
@@ -446,6 +518,15 @@ uk:
     та "https://huggingface.co/pyannote/segmentation-3.0" і погодитися з їхніми вимогами.
   HuggingFace Token: Токен HuggingFace
   Diarization: Діаризація
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: СТВОРИТИ ФАЙЛ СУБТИТРІВ
   Output: Результат
   Downloadable output file: Завантажуваний файл результату
@@ -501,6 +582,15 @@ ru:
     и "https://huggingface.co/pyannote/segmentation-3.0" и согласиться с их требованиями.
   HuggingFace Token: Токен HuggingFace
   Diarization: Диаризация
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: СГЕНЕРИРОВАТЬ ФАЙЛ СУБТИТРОВ
   Output: Результат
   Downloadable output file: Загружаемый файл результата
@@ -555,6 +645,15 @@ tr:
     adreslerine gidip gereksinimlerini kabul etmeniz gerekiyor
   HuggingFace Token: HuggingFace Anahtarı
   Diarization: Konuşmacı Ayrımı
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: ALTYAZI DOSYASI OLUŞTUR
   Output: Çıktı
   Downloadable output file: İndirilebilir çıktı dosyası
@@ -609,6 +708,15 @@ eu:
     eta "https://huggingface.co/pyannote/segmentation-3.0" eta onartu haien erabilpen-baldintzak.
   HuggingFace Token: HuggingFace Tokena
   Diarization: Diarizazioa
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: SORTU AZPITITULU-FITXATEGIA
   Output: Irteera
   Downloadable output file: Irteera fitxategia deskargagarria
@@ -661,6 +769,15 @@ he: # Hebrew
   Enable this to transcribe only detected voice: אפשר זאת כדי לתמלל רק קטעי קול שזוהו על ידי מודל המשנה
   Enable Silero VAD Filter: אפשר מסנן Silero VAD
   Diarization: דיאריזציה (זיהוי דוברים)
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   Enable Diarization: אפשר דיאריזציה
   HuggingFace Token: אסימון HuggingFace
   This is only needed the first time you download the model: זה נדרש רק בפעם הראשונה שאתה מוריד את המודל. אם כבר יש לך את המודלים, אין צורך להזין זאת
@@ -703,6 +820,15 @@ zh-TW:
      如果您已經有模型，則無需輸入。若要下載模型，您必須手動前往 "https://huggingface.co/pyannote/speaker-diarization-3.1" 和 "https://huggingface.co/pyannote/segmentation-3.0" 並同意其要求
   HuggingFace Token: HuggingFace 權杖（Token）
   Diarization: 語者分離
+  WhisperX Alignment & Speaker Tags: WhisperX Alignment & Speaker Tags
+  Enable WhisperX Alignment: Enable WhisperX Alignment
+  Refine word-level timestamps using WhisperX: Refine word-level timestamps using WhisperX
+  WhisperX Minimum Word Confidence: WhisperX Minimum Word Confidence
+  Discard aligned words below this WhisperX confidence score: Discard aligned words below this WhisperX confidence score
+  Tag Words With Speaker Labels: Tag Words With Speaker Labels
+  Add diarization speaker tags to each aligned word: Add diarization speaker tags to each aligned word
+  Fallback to Nearest Speaker When No Overlap: Fallback to Nearest Speaker When No Overlap
+  Use the closest diarization segment when a word has no overlap: Use the closest diarization segment when a word has no overlap
   GENERATE SUBTITLE FILE: 產生字幕檔案
   Output: 輸出
   Downloadable output file: 可下載的輸出檔案

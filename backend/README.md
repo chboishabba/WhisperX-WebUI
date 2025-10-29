@@ -18,10 +18,16 @@ DB_URL="sqlite:///backend/records.db"
 pip install -r backend/requirements-backend.txt
 ```
 
-3. Deploy the server with `uvicorn` or whatever. 
+3. Deploy the server with `uvicorn` or whatever.
 ```
 uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
+
+## WhisperX Alignment & Diarization in the Backend
+
+- The backend image shares the same dependency stack as the WebUI. Installing `backend/requirements-backend.txt` pulls in WhisperX, `onnxruntime-gpu`, and the compatible `pyannote.audio` build so alignment and diarization are available to API callers.
+- WhisperX diarization relies on the `HF_TOKEN` value just like the WebUI. Keep the token in `backend/configs/.env` (see step 1 above) or export it in the environment before starting Uvicorn or the Docker container.
+- The diarization pipeline caches its weights under `models/Diarization/`; ensure this path is writable or mount it as a Docker volume when deploying.
 
 ### Deploy with your domain name
 You can deploy the server with your domain name by setting up a reverse proxy with Nginx.

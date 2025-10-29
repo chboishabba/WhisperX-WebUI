@@ -8,7 +8,7 @@ from typing import Optional, Union
 import torch
 
 from modules.whisper.data_classes import *
-from modules.utils.paths import DIARIZATION_MODELS_DIR
+from modules.utils.paths import WHISPERX_MODELS_DIR
 from modules.diarize.audio_loader import load_audio, SAMPLE_RATE
 
 
@@ -16,10 +16,11 @@ class DiarizationPipeline:
     def __init__(
         self,
         model_name="pyannote/speaker-diarization-3.1",
-        cache_dir: str = DIARIZATION_MODELS_DIR,
+        cache_dir: Optional[str] = None,
         use_auth_token=None,
         device: Optional[Union[str, torch.device]] = "cpu",
     ):
+        cache_dir = cache_dir or os.path.join(WHISPERX_MODELS_DIR, "diarization")
         if isinstance(device, str):
             device = torch.device(device)
         self.model = Pipeline.from_pretrained(
@@ -42,7 +43,7 @@ class DiarizationPipeline:
         return diarize_df
 
 
-def assign_word_speakers(diarize_df, transcript_result, fill_nearest=False):
+def assign_word_speakers(diarize_df, transcript_result, fill_nearest=False, tag_words=True):
     transcript_segments = transcript_result["segments"]
     if transcript_segments and isinstance(transcript_segments[0], Segment):
         transcript_segments = [seg.model_dump() for seg in transcript_segments]
@@ -66,7 +67,7 @@ def assign_word_speakers(diarize_df, transcript_result, fill_nearest=False):
             seg["speaker"] = speaker
 
         # assign speaker to words
-        if 'words' in seg and seg['words'] is not None:
+        if tag_words and 'words' in seg and seg['words'] is not None:
             for word in seg['words']:
                 if 'start' in word:
                     diarize_df['intersection'] = np.minimum(diarize_df['end'], word['end']) - np.maximum(
