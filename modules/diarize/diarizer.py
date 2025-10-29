@@ -27,7 +27,9 @@ class Diarizer:
             audio: Union[str, BinaryIO, np.ndarray],
             transcribed_result: List[Segment],
             use_auth_token: str,
-            device: Optional[str] = None
+            device: Optional[str] = None,
+            tag_word_speakers: bool = False,
+            fill_nearest_speaker: bool = False
             ) -> Tuple[List[Segment], float]:
         """
         Diarize transcribed result as a post-processing
@@ -43,6 +45,10 @@ class Diarizer:
             You must manually go to the website https://huggingface.co/pyannote/speaker-diarization-3.1 and agree to their TOS to download the model.
         device: Optional[str]
             Device for diarization.
+        tag_word_speakers: bool
+            Whether to propagate speaker tags down to individual words.
+        fill_nearest_speaker: bool
+            When enabled, falls back to the nearest diarization segment if there is no overlap.
 
         Returns
         ----------
@@ -67,19 +73,31 @@ class Diarizer:
         diarization_segments = self.pipe(audio)
         diarized_result = assign_word_speakers(
             diarization_segments,
-            {"segments": transcribed_result}
+            {"segments": transcribed_result},
+            fill_nearest=fill_nearest_speaker,
+            tag_words=tag_word_speakers
         )
 
         segments_result = []
         for segment in diarized_result["segments"]:
-            speaker = "None"
-            if "speaker" in segment:
-                speaker = segment["speaker"]
-            diarized_text = speaker + "|" + segment["text"].strip()
+            speaker = segment.get("speaker")
+            diarized_text = segment.get("text", "").strip()
+            diarized_text = f"{speaker if speaker else 'None'}|{diarized_text}"
+            words = None
+            if segment.get("words"):
+                words = []
+                for word in segment["words"]:
+                    if isinstance(word, Word):
+                        words.append(word)
+                    else:
+                        words.append(Word(**word))
+
             segments_result.append(Segment(
-                start=segment["start"],
-                end=segment["end"],
-                text=diarized_text
+                start=segment.get("start"),
+                end=segment.get("end"),
+                text=diarized_text,
+                speaker=speaker,
+                words=words
             ))
 
         elapsed_time = time.time() - start_time

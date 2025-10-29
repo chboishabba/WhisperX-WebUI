@@ -194,7 +194,9 @@ class BaseTranscriptionPipeline(ABC):
                 audio=origin_audio,
                 use_auth_token=diarization_params.hf_token if diarization_params.hf_token else os.environ.get("HF_TOKEN"),
                 transcribed_result=result,
-                device=diarization_params.diarization_device
+                device=diarization_params.diarization_device,
+                tag_word_speakers=diarization_params.assign_word_speakers,
+                fill_nearest_speaker=diarization_params.fill_nearest_speaker
             )
             if diarization_params.enable_offload:
                 self.diarizer.offload()
@@ -212,6 +214,45 @@ class BaseTranscriptionPipeline(ABC):
         progress(1.0, desc="Finished.")
         total_elapsed_time = time.time() - start_time
         return result, total_elapsed_time
+
+    @staticmethod
+    def _format_segments_preview(
+        segments: List[Segment],
+        include_word_timestamps: bool = False,
+        include_word_speakers: bool = False
+    ) -> str:
+        lines = []
+        for segment in segments:
+            if segment.text is None:
+                continue
+
+            seg_start = segment.start if segment.start is not None else 0.0
+            seg_end = segment.end if segment.end is not None else seg_start
+            seg_text = segment.text.strip()
+
+            start_ts = format_timestamp(seg_start)
+            end_ts = format_timestamp(seg_end)
+            lines.append(f"[{start_ts} -> {end_ts}] {seg_text}")
+
+            if include_word_timestamps and segment.words:
+                for word in segment.words:
+                    if word.word is None:
+                        continue
+                    word_start = word.start if word.start is not None else seg_start
+                    word_end = word.end if word.end is not None else seg_end
+                    word_start_ts = format_timestamp(word_start)
+                    word_end_ts = format_timestamp(word_end)
+                    word_label = word.word.strip()
+                    speaker = None
+                    if include_word_speakers:
+                        speaker = getattr(word, "speaker", None) or getattr(segment, "speaker", None)
+
+                    if include_word_speakers and speaker:
+                        lines.append(f"    [{word_start_ts} -> {word_end_ts}] {speaker}: {word_label}")
+                    else:
+                        lines.append(f"    [{word_start_ts} -> {word_end_ts}] {word_label}")
+
+        return "\n".join(lines)
 
     def transcribe_file(self,
                         files: Optional[List] = None,
@@ -299,14 +340,31 @@ class BaseTranscriptionPipeline(ABC):
                     add_timestamp=add_timestamp,
                     **writer_options
                 )
-                files_info[file_name] = {"subtitle": read_file(file_path), "time_for_task": time_for_task, "path": file_path}
+                include_word_details = (
+                    params.whisper.enable_whisperx_alignment and
+                    any(getattr(seg, "words", None) for seg in transcribed_segments)
+                )
+                include_word_speakers = include_word_details and params.diarization.assign_word_speakers
+                preview = self._format_segments_preview(
+                    transcribed_segments,
+                    include_word_timestamps=include_word_details,
+                    include_word_speakers=include_word_speakers
+                )
+                subtitle_text = read_file(file_path)
+                files_info[file_name] = {
+                    "subtitle": subtitle_text,
+                    "preview": preview,
+                    "time_for_task": time_for_task,
+                    "path": file_path
+                }
 
             total_result = ''
             total_time = 0
             for file_name, info in files_info.items():
                 total_result += '------------------------------------\n'
                 total_result += f'{file_name}\n\n'
-                total_result += f'{info["subtitle"]}'
+                preview = info.get("preview") or info.get("subtitle")
+                total_result += f'{preview}\n'
                 total_time += info["time_for_task"]
 
             result_str = f"Done in {self.format_time(total_time)}! Subtitle is in the outputs folder.\n\n{total_result}"
@@ -374,7 +432,21 @@ class BaseTranscriptionPipeline(ABC):
                 **writer_options
             )
 
-            result_str = f"Done in {self.format_time(time_for_task)}! Subtitle file is in the outputs folder.\n\n{subtitle}"
+            include_word_details = (
+                params.whisper.enable_whisperx_alignment and
+                any(getattr(seg, "words", None) for seg in transcribed_segments)
+            )
+            include_word_speakers = include_word_details and params.diarization.assign_word_speakers
+            preview = self._format_segments_preview(
+                transcribed_segments,
+                include_word_timestamps=include_word_details,
+                include_word_speakers=include_word_speakers
+            )
+
+            preview_text = preview if preview else subtitle
+            result_str = (
+                f"Done in {self.format_time(time_for_task)}! Subtitle file is in the outputs folder.\n\n{preview_text}"
+            )
             return result_str, file_path
         except Exception as e:
             raise RuntimeError(f"Error transcribing mic: {e}") from e
@@ -440,7 +512,21 @@ class BaseTranscriptionPipeline(ABC):
                 **writer_options
             )
 
-            result_str = f"Done in {self.format_time(time_for_task)}! Subtitle file is in the outputs folder.\n\n{subtitle}"
+            include_word_details = (
+                params.whisper.enable_whisperx_alignment and
+                any(getattr(seg, "words", None) for seg in transcribed_segments)
+            )
+            include_word_speakers = include_word_details and params.diarization.assign_word_speakers
+            preview = self._format_segments_preview(
+                transcribed_segments,
+                include_word_timestamps=include_word_details,
+                include_word_speakers=include_word_speakers
+            )
+
+            preview_text = preview if preview else subtitle
+            result_str = (
+                f"Done in {self.format_time(time_for_task)}! Subtitle file is in the outputs folder.\n\n{preview_text}"
+            )
 
             if os.path.exists(audio):
                 os.remove(audio)

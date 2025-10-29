@@ -42,7 +42,7 @@ class DiarizationPipeline:
         return diarize_df
 
 
-def assign_word_speakers(diarize_df, transcript_result, fill_nearest=False):
+def assign_word_speakers(diarize_df, transcript_result, fill_nearest=False, tag_words=True):
     transcript_segments = transcript_result["segments"]
     if transcript_segments and isinstance(transcript_segments[0], Segment):
         transcript_segments = [seg.model_dump() for seg in transcript_segments]
@@ -66,7 +66,7 @@ def assign_word_speakers(diarize_df, transcript_result, fill_nearest=False):
             seg["speaker"] = speaker
 
         # assign speaker to words
-        if 'words' in seg and seg['words'] is not None:
+        if tag_words and 'words' in seg and seg['words'] is not None:
             for word in seg['words']:
                 if 'start' in word:
                     diarize_df['intersection'] = np.minimum(diarize_df['end'], word['end']) - np.maximum(
