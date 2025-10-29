@@ -31,6 +31,7 @@ class Segment(BaseModel):
     avg_logprob: Optional[float] = Field(default=None, description="Average log probability of the tokens")
     compression_ratio: Optional[float] = Field(default=None, description="Compression ratio of the segment")
     no_speech_prob: Optional[float] = Field(default=None, description="Probability that it's not speech")
+    speaker: Optional[str] = Field(default=None, description="Speaker label for the segment")
     words: Optional[List['Word']] = Field(default=None, description="List of words contained in the segment")
 
     @classmethod
@@ -198,6 +199,14 @@ class DiarizationParams(BaseParams):
                 info=_("This is only needed the first time you download the model")
             ),
             gr.Checkbox(
+                label=_("Use WhisperX Diarization"),
+                value=defaults.get(
+                    "use_whisperx_diarization",
+                    cls.__fields__["use_whisperx_diarization"].default,
+                ),
+                info=_("Perform diarization with WhisperX and attach speakers to aligned words"),
+            ),
+            gr.Checkbox(
                 label=_("Offload sub model when finished"),
                 value=defaults.get("enable_offload", cls.__fields__["enable_offload"].default),
             )
@@ -322,6 +331,10 @@ class WhisperParams(BaseParams):
         description="Maximum initial timestamp"
     )
     word_timestamps: bool = Field(default=False, description="Extract word-level timestamps")
+    enable_whisperx_alignment: bool = Field(
+        default=False,
+        description="Use WhisperX forced alignment to refine word-level timestamps",
+    )
     prepend_punctuations: Optional[str] = Field(
         default="\"'“¿([{-",
         description="Punctuations to merge with next word"
@@ -522,6 +535,14 @@ class WhisperParams(BaseParams):
                 value=defaults.get("word_timestamps", cls.__fields__["word_timestamps"].default),
                 info="Extract word-level timestamps"
             ),
+            gr.Checkbox(
+                label="Use WhisperX Alignment",
+                value=defaults.get(
+                    "enable_whisperx_alignment",
+                    cls.__fields__["enable_whisperx_alignment"].default,
+                ),
+                info="Leverages WhisperX forced alignment for word-level timestamps",
+            ),
             gr.Textbox(
                 label="Prepend Punctuations",
                 value=defaults.get("prepend_punctuations", cls.__fields__["prepend_punctuations"].default),
@@ -632,16 +653,20 @@ class TranscriptionPipelineParams(BaseModel):
         """Convert list to the data class again to use it in a function."""
         data_list = deepcopy(pipeline_list)
 
-        whisper_list = data_list[0:len(WhisperParams.__annotations__)]
-        data_list = data_list[len(WhisperParams.__annotations__):]
+        whisper_expected = len(WhisperParams.__annotations__)
+        whisper_list = data_list[:whisper_expected]
+        data_list = data_list[len(whisper_list):]
 
-        vad_list = data_list[0:len(VadParams.__annotations__)]
-        data_list = data_list[len(VadParams.__annotations__):]
+        vad_expected = len(VadParams.__annotations__)
+        vad_list = data_list[:vad_expected]
+        data_list = data_list[len(vad_list):]
 
-        diarization_list = data_list[0:len(DiarizationParams.__annotations__)]
-        data_list = data_list[len(DiarizationParams.__annotations__):]
+        diarization_expected = len(DiarizationParams.__annotations__)
+        diarization_list = data_list[:diarization_expected]
+        data_list = data_list[len(diarization_list):]
 
-        bgm_sep_list = data_list[0:len(BGMSeparationParams.__annotations__)]
+        bgm_expected = len(BGMSeparationParams.__annotations__)
+        bgm_sep_list = data_list[:bgm_expected]
 
         return TranscriptionPipelineParams(
             whisper=WhisperParams.from_list(whisper_list),

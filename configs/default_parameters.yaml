@@ -23,6 +23,7 @@ whisper:
   suppress_tokens: "[-1]"
   max_initial_timestamp: 1
   word_timestamps: false
+  enable_whisperx_alignment: false
   prepend_punctuations: "\"'“¿([{-"
   append_punctuations: "\"'.。,，!！?？:：”)]}、"
   max_new_tokens: null
@@ -46,6 +47,7 @@ vad:
 diarization:
   is_diarize: false
   hf_token: ""
+  use_whisperx_diarization: false
   assign_word_speakers: false
   fill_nearest_speaker: false
   enable_offload: true
