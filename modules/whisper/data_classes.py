@@ -16,6 +16,7 @@ class WhisperImpl(Enum):
     WHISPER = "whisper"
     FASTER_WHISPER = "faster-whisper"
     INSANELY_FAST_WHISPER = "insanely_fast_whisper"
+    WHISPERX = "whisperx"
 
 
 class Segment(BaseModel):
