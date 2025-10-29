@@ -79,7 +79,8 @@ class Diarizer:
             segments_result.append(Segment(
                 start=segment["start"],
                 end=segment["end"],
-                text=diarized_text
+                text=diarized_text,
+                speaker=speaker
             ))
 
         elapsed_time = time.time() - start_time

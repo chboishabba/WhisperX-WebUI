@@ -4,7 +4,7 @@ import ctranslate2
 import gradio as gr
 import torchaudio
 from abc import ABC, abstractmethod
-from typing import BinaryIO, Union, Tuple, List, Callable
+from typing import BinaryIO, Optional, Union, Tuple, List, Callable
 import numpy as np
 from datetime import datetime
 from faster_whisper.vad import VadOptions
@@ -22,6 +22,7 @@ from modules.utils.youtube_manager import get_ytdata, get_ytaudio
 from modules.utils.files_manager import get_media_files, format_gradio_files, load_yaml, save_yaml, read_file
 from modules.utils.audio_manager import validate_audio
 from modules.whisper.data_classes import *
+from modules.whisper.whisperx_wrapper import WhisperXWrapper
 from modules.diarize.diarizer import Diarizer
 from modules.vad.silero_vad import SileroVAD
 
@@ -56,6 +57,7 @@ class BaseTranscriptionPipeline(ABC):
         self.device = self.get_device()
         self.available_compute_types = self.get_available_compute_type()
         self.current_compute_type = self.get_compute_type()
+        self.whisperx_wrapper: Optional[WhisperXWrapper] = None
 
     @abstractmethod
     def transcribe(self,
@@ -148,6 +150,14 @@ class BaseTranscriptionPipeline(ABC):
 
         origin_audio = deepcopy(audio)
 
+        use_whisperx_alignment = getattr(whisper_params, "enable_whisperx_alignment", False)
+        use_whisperx_diarization = (
+            diarization_params.is_diarize and getattr(diarization_params, "use_whisperx_diarization", False)
+        )
+        use_whisperx = use_whisperx_alignment or use_whisperx_diarization
+        whisperx_language = None
+        diarization_done = False
+
         if vad_params.vad_filter:
             progress(0, desc="Filtering silent parts from audio..")
             vad_options = VadOptions(
@@ -169,14 +179,26 @@ class BaseTranscriptionPipeline(ABC):
             else:
                 vad_params.vad_filter = False
 
-        result, elapsed_time_transcription = self.transcribe(
-            audio,
-            progress,
-            progress_callback,
-            *whisper_params.to_list()
-        )
-        if whisper_params.enable_offload:
-            self.offload()
+        if use_whisperx:
+            if self.whisperx_wrapper is None:
+                self.whisperx_wrapper = WhisperXWrapper(
+                    model_dir=self.model_dir,
+                    diarization_model_dir=self.diarizer.model_dir,
+                )
+            result, whisperx_language, elapsed_time_transcription = self.whisperx_wrapper.transcribe(
+                audio,
+                whisper_params,
+                self.device,
+                progress,
+                progress_callback,
+            )
+        else:
+            result, elapsed_time_transcription = self.transcribe(
+                audio,
+                progress,
+                progress_callback,
+                *whisper_params.to_list()
+            )
 
         if vad_params.vad_filter:
             restored_result = self.vad.restore_speech_timestamps(
@@ -188,7 +210,30 @@ class BaseTranscriptionPipeline(ABC):
             else:
                 logger.info("VAD detected no speech segments in the audio.")
 
-        if diarization_params.is_diarize:
+        if use_whisperx_alignment:
+            progress(0.95, desc="Aligning with WhisperX..")
+            result = self.whisperx_wrapper.align(
+                segments=result,
+                language=whisperx_language,
+                audio=origin_audio,
+                device=self.device,
+            )
+
+        if whisper_params.enable_offload:
+            self.offload()
+
+        if use_whisperx_diarization:
+            progress(0.99, desc="Diarizing speakers..")
+            result = self.whisperx_wrapper.diarize(
+                audio=origin_audio,
+                segments=result,
+                diarization_params=diarization_params,
+            )
+            diarization_done = True
+            if diarization_params.enable_offload and self.whisperx_wrapper is not None:
+                self.whisperx_wrapper.offload_diarizer()
+
+        if diarization_params.is_diarize and not diarization_done:
             progress(0.99, desc="Diarizing speakers..")
             result, elapsed_time_diarization = self.diarizer.run(
                 audio=origin_audio,
@@ -469,6 +514,9 @@ class BaseTranscriptionPipeline(ABC):
         if self.model is not None:
             del self.model
             self.model = None
+        if self.whisperx_wrapper is not None:
+            self.whisperx_wrapper.offload_asr()
+            self.whisperx_wrapper.offload_alignment()
         if self.device == "cuda":
             torch.cuda.empty_cache()
             torch.cuda.reset_max_memory_allocated()
