@@ -6,7 +6,7 @@ A Gradio-based browser interface for [Whisper](https://github.com/openai/whisper
 
 
 ## Notebook
-If you wish to try this on Colab, you can do it in [here](https://colab.research.google.com/github/chboishabba/Whisper-WebUI/blob/master/notebook/whisper-webui.ipynb)!
+If you wish to try this on Colab, you can do it in [here](https://colab.research.google.com/github/chboishabba/WhisperX-WebUI/blob/master/notebook/whisper-webui.ipynb)!
 
 # Feature
 - Select the Whisper implementation you want to use between :
@@ -54,7 +54,7 @@ The app is able to run with [Pinokio](https://github.com/pinokiocomputer/pinokio
 2. Git clone the repository
 
 ```sh
-git clone https://github.com/chboishabba/Whisper-WebUI.git
+git clone https://github.com/chboishabba/WhisperXX-WebUI.git
 ```
 
 3. Build the image ( Image is about 7GB~ )
@@ -71,15 +71,15 @@ docker compose up
 
 5. Connect to the WebUI with your browser at `http://localhost:7860`
 
-If needed, update the [`docker-compose.yaml`](https://github.com/chboishabba/Whisper-WebUI/blob/master/docker-compose.yaml) to match your environment.
+If needed, update the [`docker-compose.yaml`](https://github.com/chboishabba/WhisperX-WebUI/blob/master/docker-compose.yaml) to match your environment.
 
 - ## Run Locally
 
 ### Prerequisite
 To run this WebUI, you need to have `git`, `3.10 <= python <= 3.12`, `FFmpeg`.
 
-**Edit `--extra-index-url` in the [`requirements.txt`](https://github.com/chboishabba/Whisper-WebUI/blob/master/requirements.txt) to match your device.<br>** 
-By default, the WebUI assumes you're using an Nvidia GPU and **CUDA 12.6.** If you're using Intel or another CUDA version, read the [`requirements.txt`](https://github.com/chboishabba/Whisper-WebUI/blob/master/requirements.txt) and edit `--extra-index-url`.
+**Edit `--extra-index-url` in the [`requirements.txt`](https://github.com/chboishabba/WhisperX-WebUI/blob/master/requirements.txt) to match your device.<br>** 
+By default, the WebUI assumes you're using an Nvidia GPU and **CUDA 12.6.** If you're using Intel or another CUDA version, read the [`requirements.txt`](https://github.com/chboishabba/WhisperX-WebUI/blob/master/requirements.txt) and edit `--extra-index-url`.
 
 Please follow the links below to install the necessary software:
 - git : [https://git-scm.com/downloads](https://git-scm.com/downloads)
@@ -93,12 +93,12 @@ After installing FFmpeg, **make sure to add the `FFmpeg/bin` folder to your syst
 
 1. git clone this repository
 ```shell
-git clone https://github.com/chboishabba/Whisper-WebUI.git
+git clone https://github.com/chboishabba/WhisperX-WebUI.git
 ```
 2. Run `install.bat` or `install.sh` to install dependencies. (It will create a `venv` directory and install dependencies there.)
 3. Start WebUI with `start-webui.bat` or `start-webui.sh` (It will run `python app.py` after activating the venv)
 
-And you can also run the project with command line arguments if you like to, see [wiki](https://github.com/chboishabba/Whisper-WebUI/wiki/Command-Line-Arguments) for a guide to arguments.
+And you can also run the project with command line arguments if you like to, see [wiki](https://github.com/chboishabba/WhisperX-WebUI/wiki/Command-Line-Arguments) for a guide to arguments.
 
 # WhisperX Alignment & Diarization
 
@@ -138,7 +138,7 @@ According to faster-whisper, the efficiency of the optimized whisper model is as
 | faster-whisper    | fp16      | 5         | 54s   | 4755MB          | 3244MB          |
 
 If you want to use an implementation other than faster-whisper, use `--whisper_type` arg and the repository name.<br>
-Read [wiki](https://github.com/chboishabba/Whisper-WebUI/wiki/Command-Line-Arguments) for more info about CLI args.
+Read [wiki](https://github.com/chboishabba/WhisperX-WebUI/wiki/Command-Line-Arguments) for more info about CLI args.
 
 If you want to use a fine-tuned model, manually place the models in `models/Whisper/` corresponding to the implementation.
 
@@ -147,7 +147,7 @@ Alternatively, if you enter the huggingface repo id (e.g, [deepdml/faster-whispe
 ![image](https://github.com/user-attachments/assets/76487a46-b0a5-4154-b735-ded73b2d83d4)
 
 # REST API
-If you're interested in deploying this app as a REST API, please check out [/backend](https://github.com/chboishabba/Whisper-WebUI/tree/master/backend).
+If you're interested in deploying this app as a REST API, please check out [/backend](https://github.com/chboishabba/WhisperX-WebUI/tree/master/backend).
 
 ## TODO🗓
 
@@ -162,4 +162,4 @@ If you're interested in deploying this app as a REST API, please check out [/bac
 - [ ] Support real-time transcription for microphone
 
 ### Translation 🌐
-Any PRs that translate the language into [translation.yaml](https://github.com/chboishabba/Whisper-WebUI/blob/master/configs/translation.yaml) would be greatly appreciated!
+Any PRs that translate the language into [translation.yaml](https://github.com/chboishabba/WhisperX-WebUI/blob/master/configs/translation.yaml) would be greatly appreciated!
