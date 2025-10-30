@@ -71,7 +71,7 @@ docker compose up
 
 5. Connect to the WebUI with your browser at `http://localhost:7860`
 
-If needed, update the [`docker-compose.yaml`](https://github.com/jhj0517/Whisper-WebUI/blob/master/docker-compose.yaml) to match your environment.
+If needed, update the [`docker-compose.yaml`](https://github.com/chboishabba/Whisper-WebUI/blob/master/docker-compose.yaml) to match your environment.
 
 - ## Run Locally
 
