@@ -19,7 +19,7 @@ gradio
 gradio-i18n
 pytubefix
 ruamel.yaml
-pyannote.audio0
+pyannote.audio
 whisperx
 onnxruntime-gpu
 git+https://github.com/jhj0517/ultimatevocalremover_api.git
