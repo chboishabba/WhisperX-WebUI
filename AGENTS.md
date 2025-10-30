@@ -1,0 +1,16 @@
+Repository Guidelines
+Project Structure & Module Organization
+
+Core Gradio orchestration lives at the repository root with the primary entry point in app.py and implementation details split under modules/. Audio pre/post-processing helpers (VAD, UVR, diarization, transcription) sit in modules/whisper/ and modules/audio/, while reusable launch scripts live in scripts/ and shell wrappers (start-webui.sh, Install.sh) in the top-level directory. Backend API code, including FastAPI routers and database helpers, resides under backend/ with its own configs/ and tests/. Configuration presets and language packs live in configs/, and automated notebooks are kept in notebook/. Keep end-to-end functional tests under tests/ mirroring the modules they exercise, and store generated artifacts (subtitles, diarization tracks) in outputs/.
+Build, Test, and Development Commands
+
+Create an isolated environment (python -m venv venv && source venv/bin/activate) and install dependencies with pip install -r requirements.txt for the web UI or pip install -r backend/requirements-backend.txt for the API service. Run the UI locally using bash start-webui.sh and launch the backend with uvicorn backend.main:app --reload. Execute the automated suite via pytest -q from the repository root; focus on a specific feature with pytest tests/test_transcription.py::test_basic_transcription. Use npm install && npm run build only when working inside frontend assets bundled in modules/ui/ (rare).
+Coding Style & Naming Conventions
+
+Target Python 3.10–3.12 semantics, using type hints and dataclasses where appropriate while preserving compatibility with synchronous Gradio callbacks. Follow PEP 8 with 4-space indentation, snake_case for functions/variables, and PascalCase for classes. Keep configuration keys uppercase with underscores and prefer dependency injection (passing model/device handles) to module-level globals. Format code with black and ensure imports stay sorted with isort; avoid committing files that are not auto-formatted. Expose intended public helpers via __all__ when a module is meant for reuse.
+Testing Guidelines
+
+Place new regression or smoke tests inside tests/ mirroring the structure of the module under test (e.g., tests/test_diarization.py for modules/whisper/diarize pipelines). Name files test_<feature>.py and use descriptive function names like test_handles_empty_segments. Mock external services (Hugging Face, DeepL, YouTube) using pytest-mock or monkeypatch to keep the suite offline. Run pytest -q and capture any expected skips with pytest.mark.skipif. Update fixtures in tests/test_srt.srt and tests/test_vtt.vtt only when behavior changes are intentional.
+Commit & Pull Request Guidelines
+
+Adopt imperative, present-tense commit subjects ("Pin torchaudio to compatible release"). Keep each commit focused and explain non-obvious changes in the body. Before opening a PR, ensure pytest -q passes along with formatting checks (black --check ., isort --check-only .) and document any intentional skips. PR descriptions should summarize behavior changes, mention any new configuration flags, and include before/after screenshots when UI widgets are affected. Reference related issues or discussions when available.
