@@ -54,7 +54,7 @@ The app is able to run with [Pinokio](https://github.com/pinokiocomputer/pinokio
 2. Git clone the repository
 
 ```sh
-git clone https://github.com/chboishabba/WhisperXX-WebUI.git
+git clone https://github.com/chboishabba/WhisperX-WebUI.git
 ```
 
 3. Build the image ( Image is about 7GB~ )
