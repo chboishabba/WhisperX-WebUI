@@ -1,4 +1,6 @@
 import functools
+import os
+os.environ["TEST_ENV"] = "true"
 from fastapi import FastAPI, UploadFile
 from fastapi.testclient import TestClient
 from starlette.datastructures import UploadFile as StarletteUploadFile
@@ -14,7 +16,7 @@ from modules.whisper.data_classes import *
 from modules.utils.paths import *
 from modules.utils.files_manager import load_yaml, save_yaml
 
-TEST_PIPELINE_PARAMS = {**WhisperParams(model_size="tiny", compute_type="float32").model_dump(exclude_none=True),
+TEST_PIPELINE_PARAMS = {**WhisperParams(model_size="tiny.en", compute_type="float32").model_dump(exclude_none=True),
                         **VadParams().model_dump(exclude_none=True),
                         **BGMSeparationParams().model_dump(exclude_none=True),
                         **DiarizationParams().model_dump(exclude_none=True)}
@@ -24,7 +26,7 @@ TEST_FILE_DOWNLOAD_URL = "https://github.com/jhj0517/whisper_flutter_new/raw/mai
 TEST_FILE_PATH = os.path.join(WEBUI_DIR, "backend", "tests", "jfk.wav")
 TEST_BGM_SEPARATION_OUTPUT_PATH = os.path.join(WEBUI_DIR, "backend", "tests", "separated_audio.zip")
 TEST_ANSWER = "And so my fellow Americans ask not what your country can do for you ask what you can do for your country"
-TEST_WHISPER_MODEL = "tiny"
+TEST_WHISPER_MODEL = "tiny.en"
 TEST_COMPUTE_TYPE = "float32"
 
 
