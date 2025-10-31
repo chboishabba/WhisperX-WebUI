@@ -23,7 +23,6 @@ whisper:
   suppress_tokens: "[-1]"
   max_initial_timestamp: 1
   word_timestamps: false
-  enable_whisperx_alignment: false
   prepend_punctuations: "\"'“¿([{-"
   append_punctuations: "\"'.。,，!！?？:：”)]}、"
   max_new_tokens: null

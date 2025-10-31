@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install the Whisper dependency with Python 3.13 compatibility."""
+"""Install the Whisper dependency."""
 from __future__ import annotations
 
 import argparse
@@ -8,46 +8,21 @@ import sys
 import tempfile
 from pathlib import Path
 
-REPO_URL = "https://github.com/jhj0517/jhj0517-whisper.git"
-REPO_COMMIT = "197244318d5d75d9d195bff0705ab05a591684ec"
+REPO_URL = "https://github.com/openai/whisper.git"
 PACKAGE_NAME = "openai-whisper"
 
 
 class InstallError(RuntimeError):
-    """Raised when the patched installation fails."""
+    """Raised when the installation fails."""
 
 
-def patch_setup_file(setup_path: Path) -> None:
-    """Patch the repository's setup.py to work on Python >= 3.13."""
-    original = '    exec(compile(open(fname, encoding="utf-8").read(), fname, "exec"))\n    return locals()["__version__"]'
-    replacement = (
-        '    namespace = {}\n'
-        '    exec(compile(open(fname, encoding="utf-8").read(), fname, "exec"), namespace)\n'
-        '    return namespace["__version__"]'
-    )
-
-    text = setup_path.read_text()
-    if original not in text:
-        raise InstallError("Unexpected setup.py contents; cannot apply Whisper patch.")
-
-    setup_path.write_text(text.replace(original, replacement))
-
-
-def clone_and_patch(destination: Path) -> None:
+def clone(destination: Path) -> None:
     subprocess.run(
         ["git", "clone", "--filter=blob:none", REPO_URL, str(destination)],
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
-    subprocess.run([
-        "git",
-        "-C",
-        str(destination),
-        "checkout",
-        REPO_COMMIT,
-    ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    patch_setup_file(destination / "setup.py")
 
 
 def install_package(source_dir: Path, *, python: Path) -> None:
@@ -58,7 +33,7 @@ def install_package(source_dir: Path, *, python: Path) -> None:
 
 
 def install_whisper(*, python: Path, force: bool = False) -> None:
-    """Install the patched Whisper package if needed."""
+    """Install the Whisper package if needed."""
     result = subprocess.run(
         [str(python), "-m", "pip", "show", PACKAGE_NAME],
         stdout=subprocess.DEVNULL,
@@ -69,7 +44,7 @@ def install_whisper(*, python: Path, force: bool = False) -> None:
 
     with tempfile.TemporaryDirectory() as tmpdir:
         repo_dir = Path(tmpdir) / "whisper"
-        clone_and_patch(repo_dir)
+        clone(repo_dir)
         install_package(repo_dir, python=python)
 
 
