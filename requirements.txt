@@ -19,6 +19,7 @@ gradio
 gradio-i18n
 pytubefix
 ruamel.yaml
+sqlmodel
 pyannote.audio
 whisperx
 jiwer
