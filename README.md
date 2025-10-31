@@ -100,6 +100,10 @@ git clone https://github.com/chboishabba/WhisperX-WebUI.git
 
 And you can also run the project with command line arguments if you like to, see [wiki](https://github.com/chboishabba/WhisperX-WebUI/wiki/Command-Line-Arguments) for a guide to arguments.
 
+### Dependency notes
+
+- `torchaudio` is pinned to 2.7.1 in [`requirements.txt`](./requirements.txt). Releases starting with 2.8 removed the `AudioMetaData` helper that our diarization pipeline imports, which triggers an `AttributeError` during transcription/diarization runs. Upgrade deliberately once the codebase stops relying on that class (or after adding a compatibility shim).
+
 # WhisperX Alignment & Diarization
 
 Whisper-WebUI now bundles [WhisperX](https://github.com/m-bain/whisperX) so you can generate accurate word-level timestamps and automatically assign speaker labels in a single pass. The Python dependencies (`whisperx`, `onnxruntime-gpu`, and compatible `pyannote.audio`) are installed automatically when you run `pip install -r requirements.txt` or build the Docker images.
