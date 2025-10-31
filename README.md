@@ -102,7 +102,7 @@ And you can also run the project with command line arguments if you like to, see
 
 # WhisperX Alignment & Diarization
 
-Whisper-WebUI now bundles [WhisperX](https://github.com/m-bain/whisperX) so you can generate accurate word-level timestamps and automatically assign speaker labels in a single pass. The Python dependencies (`whisperx`, `onnxruntime-gpu`, and compatible `pyannote.audio`) are installed automatically when you run `pip install -r requirements.txt` or build the Docker images.
+Whisper-WebUI now bundles [WhisperX](https://github.com/m-bain/whisperX) so you can generate accurate word-level timestamps and automatically assign speaker labels in a single pass. The Python dependencies (`whisperx`, `onnxruntime-gpu`, compatible `pyannote.audio`, and `jiwer` for ASR quality evaluation) are installed automatically when you run `pip install -r requirements.txt` or build the Docker images.
 
 ## Hardware and model downloads
 

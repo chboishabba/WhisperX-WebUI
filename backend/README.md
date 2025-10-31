@@ -25,7 +25,7 @@ uvicorn backend.main:app --host 0.0.0.0 --port 8000
 
 ## WhisperX Alignment & Diarization in the Backend
 
-- The backend image shares the same dependency stack as the WebUI. Installing `backend/requirements-backend.txt` pulls in WhisperX, `onnxruntime-gpu`, and the compatible `pyannote.audio` build so alignment and diarization are available to API callers.
+- The backend image shares the same dependency stack as the WebUI. Installing `backend/requirements-backend.txt` pulls in WhisperX, `onnxruntime-gpu`, the compatible `pyannote.audio` build, and `jiwer` for evaluating ASR quality so alignment, diarization, and scoring are available to API callers.
 - WhisperX diarization relies on the `HF_TOKEN` value just like the WebUI. Keep the token in `backend/configs/.env` (see step 1 above) or export it in the environment before starting Uvicorn or the Docker container.
 - The diarization pipeline caches its weights under `models/Diarization/`; ensure this path is writable or mount it as a Docker volume when deploying.
 
