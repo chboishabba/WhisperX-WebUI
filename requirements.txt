@@ -11,7 +11,8 @@
 
 
 torch
-torchaudio
+# torchaudio 2.8+ removed AudioMetaData which our diarization pipeline imports
+torchaudio==2.7.1
 faster-whisper
 ctranslate2
 transformers
