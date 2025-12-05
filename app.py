@@ -168,6 +168,14 @@ class App:
                                                                 " output directory.",
                                                            visible=self.args.colab,
                                                            value=True)
+                            cb_process_separately = gr.Checkbox(
+                                label="Process files individually",
+                                info=(
+                                    "When checked, each selected file is transcribed and saved separately. "
+                                    "Uncheck to merge all selected files into a single sequential subtitle file."
+                                ),
+                                value=True,
+                            )
                         pipeline_params, dd_file_format, cb_timestamp = self.create_pipeline_inputs()
 
                         with gr.Row():
@@ -178,6 +186,7 @@ class App:
                             btn_openfolder = gr.Button('📂', scale=1)
 
                         params = [input_file, tb_input_folder, cb_include_subdirectory, cb_save_same_dir,
+                                  cb_process_separately,
                                   dd_file_format, cb_timestamp]
                         params = params + pipeline_params
                         btn_run.click(fn=self.whisper_inf.transcribe_file,
