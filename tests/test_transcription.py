@@ -53,6 +53,7 @@ def run_asr_pipeline(
         None,
         None,
         None,
+        True,
         "SRT",
         False,
         gr.Progress(),
