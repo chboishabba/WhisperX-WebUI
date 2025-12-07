@@ -9,7 +9,8 @@
 ## Intel GPU
 # https://download.pytorch.org/whl/xpu
 
-
+openai_whisper
+dotenv
 torch
 # torchaudio 2.8+ removed AudioMetaData which our diarization pipeline imports
 torchaudio==2.7.1
@@ -23,6 +24,7 @@ pytubefix
 ruamel.yaml
 sqlmodel
 pyannote.audio
+openai_whisper
 whisperx
 jiwer
 onnxruntime-gpu

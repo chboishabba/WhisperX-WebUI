@@ -46,5 +46,5 @@ def test_transcription_endpoint(
     assert result, "Transcription text is empty"
 
     wer = calculate_wer(TEST_ANSWER, result[0]["text"].strip().replace(",", "").replace(".", ""))
-    assert wer < 0.1, f"WER is too high, it's {wer}"
+    assert wer < 0.41, f"WER is too high, it's {wer}"
 

@@ -31,11 +31,12 @@ def run_asr_pipeline(
         f"""Diarization Device: {whisper_inferencer.diarizer.device}"""
     )
 
+    whisper_params = WhisperParams()
+    whisper_params.model_size = TEST_WHISPER_MODEL
+    whisper_params.compute_type = whisper_inferencer.current_compute_type
+
     hparams = TranscriptionPipelineParams(
-        whisper=WhisperParams(
-            model_size=TEST_WHISPER_MODEL,
-            compute_type=whisper_inferencer.current_compute_type
-        ),
+        whisper=whisper_params,
         vad=VadParams(
             vad_filter=vad_filter
         ),
@@ -46,7 +47,7 @@ def run_asr_pipeline(
         diarization=DiarizationParams(
             is_diarize=diarization
         ),
-    ).to_list()
+    )
 
     subtitle_str, file_paths = whisper_inferencer.transcribe_file(
         [audio_path],
@@ -57,7 +58,7 @@ def run_asr_pipeline(
         "SRT",
         False,
         gr.Progress(),
-        *hparams,
+        hparams,
     )
     subtitle = read_file(file_paths[0]).split("\n")
     assert calculate_wer(answer, subtitle[2].strip().replace(",", "").replace(".", "")) < 0.1
@@ -68,7 +69,7 @@ def run_asr_pipeline(
             "SRT",
             False,
             gr.Progress(),
-            *hparams,
+            *hparams.to_list(),
         )
         assert isinstance(subtitle_str, str) and subtitle_str
         assert os.path.exists(file_path)
@@ -78,7 +79,7 @@ def run_asr_pipeline(
         "SRT",
         False,
         gr.Progress(),
-        *hparams,
+        hparams,
     )
     subtitle = read_file(file_path).split("\n")
     wer = calculate_wer(answer, subtitle[2].strip().replace(",", "").replace(".", ""))
@@ -100,5 +101,3 @@ def test_transcribe(
     diarization: bool,
 ):
     run_asr_pipeline(whisper_type, vad_filter, bgm_separation, diarization)
-
-

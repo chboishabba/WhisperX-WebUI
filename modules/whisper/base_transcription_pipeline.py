@@ -60,7 +60,7 @@ class BaseTranscriptionPipeline(ABC):
         self.whisperx_wrapper: Optional[WhisperXWrapper] = None
 
     @abstractmethod
-    def transcribe(self,
+    def transcribe(
                    audio: Union[str, BinaryIO, np.ndarray],
                    progress: gr.Progress = gr.Progress(),
                    progress_callback: Optional[Callable] = None,
@@ -70,7 +70,7 @@ class BaseTranscriptionPipeline(ABC):
         pass
 
     @abstractmethod
-    def update_model(self,
+    def update_model(
                      model_size: str,
                      compute_type: str,
                      progress: gr.Progress = gr.Progress()
@@ -78,7 +78,8 @@ class BaseTranscriptionPipeline(ABC):
         """Initialize whisper model"""
         pass
 
-    def run(self,
+    def run(
+            self,
             audio: Union[str, BinaryIO, np.ndarray],
             progress: gr.Progress = gr.Progress(),
             file_format: str = "SRT",
@@ -308,7 +309,7 @@ class BaseTranscriptionPipeline(ABC):
                         file_format: str = "SRT",
                         add_timestamp: bool = True,
                         progress=gr.Progress(),
-                        *pipeline_params,
+                        pipeline_params: TranscriptionPipelineParams = None,
                         ) -> Tuple[str, List]:
         """
         Write subtitle file from Files
@@ -346,7 +347,7 @@ class BaseTranscriptionPipeline(ABC):
             Output file path to return to gr.Files()
         """
         try:
-            params = TranscriptionPipelineParams.from_list(list(pipeline_params))
+            params = pipeline_params
             writer_options = {
                 "highlight_words": True if params.whisper.word_timestamps else False
             }
@@ -369,7 +370,7 @@ class BaseTranscriptionPipeline(ABC):
                     file_format,
                     add_timestamp,
                     None,
-                    *pipeline_params,
+                    *pipeline_params.to_list(),
                 )
 
                 file_name, file_ext = os.path.splitext(os.path.basename(file))
@@ -567,7 +568,7 @@ class BaseTranscriptionPipeline(ABC):
         except Exception as e:
             raise RuntimeError(f"Error transcribing mic: {e}") from e
 
-    def transcribe_youtube(self,
+    def transcribe_youtube(
                            youtube_link: str,
                            file_format: str = "SRT",
                            add_timestamp: bool = True,
