@@ -235,8 +235,6 @@ class App:
             len(whisper_inputs)
         )
         whisper_inputs.insert(offload_insert_idx, sl_whisperx_confidence)
-
-        whisper_inputs.extend([cb_whisperx_alignment, sl_whisperx_confidence])
         if whisper_offload_component is not None:
             whisper_inputs.append(whisper_offload_component)
 

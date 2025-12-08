@@ -195,7 +195,7 @@ class DiarizationParams(BaseParams):
             gr.Dropdown(
                 label=_("Device"),
                 choices=["cpu", "cuda", "xpu"] if available_devices is None else available_devices,
-                value=defaults.get("device", device),
+                value=defaults.get("diarization_device", device),
             ),
             gr.Textbox(
                 label=_("HuggingFace Token"),
