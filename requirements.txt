@@ -13,12 +13,12 @@ openai_whisper
 dotenv
 torch
 # torchaudio 2.8+ removed AudioMetaData which our diarization pipeline imports
-torchaudio==2.7.1
+torchaudio
 openai-whisper
 faster-whisper
 ctranslate2
 transformers
-gradio==3.50.2
+gradio
 gradio-i18n
 pytubefix
 ruamel.yaml

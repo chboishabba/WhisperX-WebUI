@@ -120,6 +120,17 @@ def test_app_launch(monkeypatch, tmp_path):
             return False
 
     class DummyBlocks(DummyContext):
+        def __init__(self, *, render=False, **kwargs):
+            # Mirror a minimal subset of gr.Blocks kwargs so unexpected args (like deprecated css) raise
+            super().__init__()
+            allowed = {"theme", "delete_cache"}
+            unexpected = set(kwargs) - allowed
+            if unexpected:
+                raise TypeError(f"DummyBlocks.__init__() got unexpected keyword arguments {unexpected}")
+            self.render = render
+            self.theme = kwargs.get("theme")
+            self.delete_cache = kwargs.get("delete_cache")
+
         def queue(self, *_, **__):
             return self
 
