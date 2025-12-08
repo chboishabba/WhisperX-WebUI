@@ -187,6 +187,11 @@ class DiarizationParams(BaseParams):
                          defaults: Optional[Dict] = None,
                          available_devices: Optional[List] = None,
                          device: Optional[str] = None) -> List[gr.components.base.FormComponent]:
+        defaults = defaults or {}
+        device_choices = ["cpu", "cuda", "xpu"] if available_devices is None else available_devices
+        default_device = defaults.get("diarization_device", device)
+        if device_choices and default_device not in device_choices:
+            default_device = device_choices[0]
         return [
             gr.Checkbox(
                 label=_("Enable Diarization"),
@@ -194,8 +199,8 @@ class DiarizationParams(BaseParams):
             ),
             gr.Dropdown(
                 label=_("Device"),
-                choices=["cpu", "cuda", "xpu"] if available_devices is None else available_devices,
-                value=defaults.get("diarization_device", device),
+                choices=device_choices,
+                value=default_device,
             ),
             gr.Textbox(
                 label=_("HuggingFace Token"),
@@ -245,6 +250,11 @@ class BGMSeparationParams(BaseParams):
                         available_devices: Optional[List] = None,
                         device: Optional[str] = None,
                         available_models: Optional[List] = None) -> List[gr.components.base.FormComponent]:
+        defaults = defaults or {}
+        device_choices = ["cpu", "cuda", "xpu"] if available_devices is None else available_devices
+        default_device = defaults.get("uvr_device", device)
+        if device_choices and default_device not in device_choices:
+            default_device = device_choices[0]
         return [
             gr.Checkbox(
                 label=_("Enable Background Music Remover Filter"),
@@ -260,8 +270,8 @@ class BGMSeparationParams(BaseParams):
             ),
             gr.Dropdown(
                 label=_("Device"),
-                choices=["cpu", "cuda", "xpu"] if available_devices is None else available_devices,
-                value=defaults.get("device", device),
+                choices=device_choices,
+                value=default_device,
             ),
             gr.Number(
                 label="Segment Size",
