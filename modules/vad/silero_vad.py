@@ -121,7 +121,7 @@ class SileroVAD:
         padded_audio = np.pad(
             audio, (0, window_size_samples - audio.shape[0] % window_size_samples)
         )
-        speech_probs = self.model(padded_audio.reshape(1, -1)).squeeze(0)
+        speech_probs = np.squeeze(self.model(padded_audio))
 
         triggered = False
         speeches = []

@@ -1,6 +1,7 @@
 import gradio as gr
 import pytest
 import os
+import numpy as np
 
 from modules.whisper.data_classes import *
 from modules.vad.silero_vad import SileroVAD
@@ -56,3 +57,50 @@ def test_vad(
     )
 
     assert speech_chunks
+
+
+def test_get_speech_timestamps_uses_1d_audio():
+    vad_model = SileroVAD()
+
+    calls = []
+
+    class DummyModel:
+        def __call__(self, audio):
+            calls.append(audio.shape)
+            assert audio.ndim == 1
+            return np.zeros(audio.shape[0], dtype=np.float32)
+
+    vad_model.model = DummyModel()
+
+    mono_audio = np.linspace(0, 1, vad_model.window_size_samples + 88, dtype=np.float32)
+
+    speech_chunks = vad_model.get_speech_timestamps(
+        mono_audio,
+        vad_options=VadOptions(),
+    )
+
+    assert calls == [(vad_model.window_size_samples * 2,)]
+    assert speech_chunks == []
+
+
+def test_run_handles_multichannel_input(monkeypatch):
+    vad_model = SileroVAD()
+
+    class DummyModel:
+        def __call__(self, audio):
+            assert audio.ndim == 1
+            return np.zeros(audio.shape[0], dtype=np.float32)
+
+    vad_model.model = DummyModel()
+
+    stereo_audio = np.ones((vad_model.window_size_samples, 2), dtype=np.float32)
+
+    processed_audio, speech_chunks = vad_model.run(
+        audio=stereo_audio,
+        vad_parameters=VadOptions(),
+        progress=gr.Progress(),
+    )
+
+    assert processed_audio.ndim == 1
+    assert processed_audio.size == 0
+    assert speech_chunks == []
