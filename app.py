@@ -257,6 +257,8 @@ class App:
         uvr_params = self.default_params["bgm_separation"]
 
         with self.app:
+            transcription_events = []
+            cancel_all_buttons = []
             gr.HTML(f"<style>{CSS}</style>")
             lang = gr.Radio(choices=list(self.i18n.keys()),
                             label=_("Language"), interactive=True,
@@ -296,6 +298,8 @@ class App:
 
                         with gr.Row():
                             btn_run = gr.Button(_("GENERATE SUBTITLE FILE"), variant="primary")
+                            btn_cancel_file = gr.Button(_("Cancel This Transcription"), variant="stop")
+                            btn_cancel_all_file = gr.Button(_("Cancel All Transcriptions"), variant="secondary")
                         with gr.Row():
                             tb_indicator = gr.Textbox(label=_("Output"), scale=5)
                             files_subtitles = gr.Files(label=_("Downloadable output file"), scale=3, interactive=False)
@@ -305,9 +309,14 @@ class App:
                                   cb_process_separately,
                                   dd_file_format, cb_timestamp]
                         params = params + pipeline_params
-                        btn_run.click(fn=self._transcribe_file,
-                                      inputs=params,
-                                      outputs=[tb_indicator, files_subtitles])
+                        file_run_event = btn_run.click(
+                            fn=self._transcribe_file,
+                            inputs=params,
+                            outputs=[tb_indicator, files_subtitles],
+                        )
+                        transcription_events.append(file_run_event)
+                        btn_cancel_file.click(fn=None, inputs=None, outputs=None, cancels=[file_run_event])
+                        cancel_all_buttons.append(btn_cancel_all_file)
                         btn_openfolder.click(fn=lambda: self.open_folder("outputs"), inputs=None, outputs=None)
 
                     with gr.TabItem(_("Youtube")):  # tab2
@@ -324,6 +333,8 @@ class App:
 
                         with gr.Row():
                             btn_run = gr.Button(_("GENERATE SUBTITLE FILE"), variant="primary")
+                            btn_cancel_youtube = gr.Button(_("Cancel This Transcription"), variant="stop")
+                            btn_cancel_all_youtube = gr.Button(_("Cancel All Transcriptions"), variant="secondary")
                         with gr.Row():
                             tb_indicator = gr.Textbox(label=_("Output"), scale=5)
                             files_subtitles = gr.Files(label=_("Downloadable output file"), scale=3)
@@ -331,9 +342,14 @@ class App:
 
                         params = [tb_youtubelink, dd_file_format, cb_timestamp]
 
-                        btn_run.click(fn=self._transcribe_youtube,
-                                      inputs=params + pipeline_params,
-                                      outputs=[tb_indicator, files_subtitles])
+                        youtube_run_event = btn_run.click(
+                            fn=self._transcribe_youtube,
+                            inputs=params + pipeline_params,
+                            outputs=[tb_indicator, files_subtitles],
+                        )
+                        transcription_events.append(youtube_run_event)
+                        btn_cancel_youtube.click(fn=None, inputs=None, outputs=None, cancels=[youtube_run_event])
+                        cancel_all_buttons.append(btn_cancel_all_youtube)
                         tb_youtubelink.change(get_ytmetas, inputs=[tb_youtubelink],
                                               outputs=[img_thumbnail, tb_title, tb_description])
                         btn_openfolder.click(fn=lambda: self.open_folder("outputs"), inputs=None, outputs=None)
@@ -353,6 +369,8 @@ class App:
 
                         with gr.Row():
                             btn_run = gr.Button(_("GENERATE SUBTITLE FILE"), variant="primary")
+                            btn_cancel_mic = gr.Button(_("Cancel This Transcription"), variant="stop")
+                            btn_cancel_all_mic = gr.Button(_("Cancel All Transcriptions"), variant="secondary")
                         with gr.Row():
                             tb_indicator = gr.Textbox(label=_("Output"), scale=5)
                             files_subtitles = gr.Files(label=_("Downloadable output file"), scale=3)
@@ -360,10 +378,23 @@ class App:
 
                         params = [mic_input, dd_file_format, cb_timestamp]
 
-                        btn_run.click(fn=self._transcribe_mic,
-                                      inputs=params + pipeline_params,
-                                      outputs=[tb_indicator, files_subtitles])
+                        mic_run_event = btn_run.click(
+                            fn=self._transcribe_mic,
+                            inputs=params + pipeline_params,
+                            outputs=[tb_indicator, files_subtitles],
+                        )
+                        transcription_events.append(mic_run_event)
+                        btn_cancel_mic.click(fn=None, inputs=None, outputs=None, cancels=[mic_run_event])
+                        cancel_all_buttons.append(btn_cancel_all_mic)
                         btn_openfolder.click(fn=lambda: self.open_folder("outputs"), inputs=None, outputs=None)
+
+                    for cancel_button in cancel_all_buttons:
+                        cancel_button.click(
+                            fn=None,
+                            inputs=None,
+                            outputs=None,
+                            cancels=transcription_events,
+                        )
 
                     with gr.TabItem(_("T2T Translation")):  # tab 4
                         with gr.Row():
