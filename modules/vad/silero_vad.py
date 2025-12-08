@@ -48,6 +48,14 @@ class SileroVAD:
         if not isinstance(audio, np.ndarray):
             audio = faster_whisper.decode_audio(audio, sampling_rate=sampling_rate)
 
+        # Ensure mono 1D audio for the VAD model
+        audio = np.asarray(audio)
+        if audio.ndim > 1:
+            audio = audio.mean(axis=-1)
+
+        # The VAD model expects float32 contiguous input
+        audio = np.ascontiguousarray(audio, dtype=np.float32)
+
         duration = audio.shape[0] / sampling_rate
         duration_after_vad = duration
 
