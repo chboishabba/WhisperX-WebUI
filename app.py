@@ -1,6 +1,16 @@
 import os
 import argparse
+from contextvars import ContextVar
 import gradio as gr
+
+# gradio_i18n expects LocalContext in older Gradio builds; stub it when missing
+if not hasattr(gr.blocks, "LocalContext"):
+    class LocalContext(gr.blocks.BlockContext):
+        request: ContextVar = ContextVar("request", default=None)
+        session: ContextVar = ContextVar("session", default=None)
+
+    gr.blocks.LocalContext = LocalContext
+
 from gradio_i18n import Translate, gettext as _
 import yaml
 
@@ -19,6 +29,17 @@ from modules.utils.logger import get_logger
 
 
 logger = get_logger()
+FILES_TYPE = "filepath"
+try:
+    gr.Files(type=FILES_TYPE)
+except Exception:
+    FILES_TYPE = "file"
+
+MIC_TYPE = "filepath"
+try:
+    gr.Microphone(type=MIC_TYPE)
+except Exception:
+    MIC_TYPE = "numpy"
 
 
 class App:
@@ -46,6 +67,33 @@ class App:
         self.default_params = load_yaml(DEFAULT_PARAMETERS_CONFIG_PATH)
         logger.info(f"Use \"{self.args.whisper_type}\" implementation\n"
                     f"Device \"{self.whisper_inf.device}\" is detected")
+
+    @staticmethod
+    def _pipeline_from_values(*pipeline_values: object) -> TranscriptionPipelineParams:
+        return TranscriptionPipelineParams.from_list(list(pipeline_values))
+
+    def _transcribe_file(
+        self,
+        files,
+        input_folder_path,
+        include_subdirectory,
+        save_same_dir,
+        process_separately,
+        file_format,
+        add_timestamp,
+        *pipeline_values,
+    ):
+        params = self._pipeline_from_values(*pipeline_values)
+        return self.whisper_inf.transcribe_file(
+            files,
+            input_folder_path,
+            include_subdirectory,
+            save_same_dir,
+            process_separately,
+            file_format,
+            add_timestamp,
+            pipeline_params=params,
+        )
 
     def create_pipeline_inputs(self):
         whisper_params = self.default_params["whisper"]
@@ -83,47 +131,23 @@ class App:
         with gr.Accordion(_("Voice Detection Filter"), open=False):
             vad_inputs = VadParams.to_gradio_inputs(defaults=vad_params)
 
+        diarizer_devices = getattr(self.whisper_inf.diarizer, "available_devices", None)
+        if diarizer_devices is None:
+            diarizer_devices = getattr(self.whisper_inf.diarizer, "available_device", None)
+
+        diarizer_device = getattr(self.whisper_inf.diarizer, "device", None)
+
         with gr.Accordion(_("Diarization"), open=False):
             diarization_inputs = DiarizationParams.to_gradio_inputs(defaults=diarization_params,
-                                                                    available_devices=self.whisper_inf.diarizer.available_devices,
-                                                                    device=self.whisper_inf.diarizer.device)
+                                                                    available_devices=diarizer_devices,
+                                                                    device=diarizer_device)
 
         whisper_offload_component = whisper_inputs.pop() if whisper_inputs else None
         diarization_offload_component = diarization_inputs.pop() if diarization_inputs else None
 
-        with gr.Accordion(_("WhisperX Alignment & Speaker Tags"), open=False):
-            cb_whisperx_alignment = gr.Checkbox(
-                value=whisper_params.get("enable_whisperx_alignment", False),
-                label=_("Enable WhisperX Alignment"),
-                info=_("Refine word-level timestamps using WhisperX"),
-                interactive=True,
-            )
-            sl_whisperx_confidence = gr.Slider(
-                minimum=0.0,
-                maximum=1.0,
-                step=0.01,
-                value=whisper_params.get("whisperx_confidence_threshold", 0.0),
-                label=_("WhisperX Minimum Word Confidence"),
-                info=_("Discard aligned words below this WhisperX confidence score"),
-            )
-            cb_assign_word_speakers = gr.Checkbox(
-                value=diarization_params.get("assign_word_speakers", False),
-                label=_("Tag Words With Speaker Labels"),
-                info=_("Add diarization speaker tags to each aligned word"),
-                interactive=True,
-            )
-            cb_fill_nearest_speaker = gr.Checkbox(
-                value=diarization_params.get("fill_nearest_speaker", False),
-                label=_("Fallback to Nearest Speaker When No Overlap"),
-                info=_("Use the closest diarization segment when a word has no overlap"),
-                interactive=True,
-            )
-
-        whisper_inputs.extend([cb_whisperx_alignment, sl_whisperx_confidence])
         if whisper_offload_component is not None:
             whisper_inputs.append(whisper_offload_component)
 
-        diarization_inputs.extend([cb_assign_word_speakers, cb_fill_nearest_speaker])
         if diarization_offload_component is not None:
             diarization_inputs.append(diarization_offload_component)
 
@@ -153,7 +177,7 @@ class App:
                 with gr.Tabs():
                     with gr.TabItem(_("File")):  # tab1
                         with gr.Column():
-                            input_file = gr.Files(type="filepath", label=_("Upload File here"), file_types=MEDIA_EXTENSION)
+                            input_file = gr.Files(type=FILES_TYPE, label=_("Upload File here"), file_types=MEDIA_EXTENSION)
                             tb_input_folder = gr.Textbox(label="Input Folder Path (Optional)",
                                                          info="Optional: Specify the folder path where the input files are located, if you prefer to use local files instead of uploading them."
                                                               " Leave this field empty if you do not wish to use a local path.",
@@ -189,7 +213,7 @@ class App:
                                   cb_process_separately,
                                   dd_file_format, cb_timestamp]
                         params = params + pipeline_params
-                        btn_run.click(fn=self.whisper_inf.transcribe_file,
+                        btn_run.click(fn=self._transcribe_file,
                                       inputs=params,
                                       outputs=[tb_indicator, files_subtitles])
                         btn_openfolder.click(fn=lambda: self.open_folder("outputs"), inputs=None, outputs=None)
@@ -224,7 +248,7 @@ class App:
 
                     with gr.TabItem(_("Mic")):  # tab3
                         with gr.Row():
-                            mic_input = gr.Microphone(label=_("Record with Mic"), type="filepath", interactive=True,
+                            mic_input = gr.Microphone(label=_("Record with Mic"), type=MIC_TYPE, interactive=True,
                                                       show_download_button=True)
 
                         pipeline_params, dd_file_format, cb_timestamp = self.create_pipeline_inputs()
@@ -245,7 +269,7 @@ class App:
 
                     with gr.TabItem(_("T2T Translation")):  # tab 4
                         with gr.Row():
-                            file_subs = gr.Files(type="filepath", label=_("Upload Subtitle Files to translate here"))
+                            file_subs = gr.Files(type=FILES_TYPE, label=_("Upload Subtitle Files to translate here"))
 
                         with gr.TabItem(_("DeepL API")):  # sub tab1
                             with gr.Row():
@@ -319,7 +343,7 @@ class App:
                             outputs=None)
 
                     with gr.TabItem(_("BGM Separation")):
-                        files_audio = gr.Files(type="filepath", label=_("Upload Audio Files to separate background music"))
+                        files_audio = gr.Files(type=FILES_TYPE, label=_("Upload Audio Files to separate background music"))
                         dd_uvr_device = gr.Dropdown(label=_("Device"), value=self.whisper_inf.music_separator.device,
                                                     choices=self.whisper_inf.music_separator.available_devices)
                         dd_uvr_model_size = gr.Dropdown(label=_("Model"), value=uvr_params["uvr_model_size"],

@@ -1,7 +1,15 @@
 import os
 import fnmatch
 from ruamel.yaml import YAML
-from gradio.utils import NamedString
+
+try:
+    from gradio.utils import NamedString
+except ImportError:  # Gradio < 3.50
+    class NamedString(str):
+        def __new__(cls, value: str, name: str | None = None):
+            obj = str.__new__(cls, value)
+            obj.name = name or value
+            return obj
 
 from modules.utils.paths import DEFAULT_PARAMETERS_CONFIG_PATH
 
