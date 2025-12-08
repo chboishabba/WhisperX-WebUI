@@ -165,6 +165,10 @@ class DiarizationParams(BaseParams):
         default="",
         description="Hugging Face token for downloading diarization models"
     )
+    use_whisperx_diarization: bool = Field(
+        default=False,
+        description="Perform diarization with WhisperX and attach speakers to aligned words",
+    )
     assign_word_speakers: bool = Field(
         default=False,
         description="Attach speaker labels to aligned words"
@@ -205,6 +209,24 @@ class DiarizationParams(BaseParams):
                     cls.__fields__["use_whisperx_diarization"].default,
                 ),
                 info=_("Perform diarization with WhisperX and attach speakers to aligned words"),
+            ),
+            gr.Checkbox(
+                label=_("Tag Words With Speaker Labels"),
+                value=defaults.get(
+                    "assign_word_speakers",
+                    cls.__fields__["assign_word_speakers"].default,
+                ),
+                info=_("Add diarization speaker tags to each aligned word"),
+                interactive=True,
+            ),
+            gr.Checkbox(
+                label=_("Fallback to Nearest Speaker When No Overlap"),
+                value=defaults.get(
+                    "fill_nearest_speaker",
+                    cls.__fields__["fill_nearest_speaker"].default,
+                ),
+                info=_("Use the closest diarization segment when a word has no overlap"),
+                interactive=True,
             ),
             gr.Checkbox(
                 label=_("Offload sub model when finished"),
@@ -335,6 +357,12 @@ class WhisperParams(BaseParams):
         default=False,
         description="Use WhisperX forced alignment to refine word-level timestamps",
     )
+    whisperx_confidence_threshold: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Minimum WhisperX confidence score to keep aligned words",
+    )
     prepend_punctuations: Optional[str] = Field(
         default="\"'“¿([{-",
         description="Punctuations to merge with next word"
@@ -360,16 +388,6 @@ class WhisperParams(BaseParams):
         description="Number of segments for language detection"
     )
     batch_size: int = Field(default=24, gt=0, description="Batch size for processing")
-    enable_whisperx_alignment: bool = Field(
-        default=False,
-        description="Enable WhisperX to refine word-level timestamps"
-    )
-    whisperx_confidence_threshold: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=1.0,
-        description="Minimum WhisperX confidence score to keep aligned words"
-    )
     enable_offload: bool = Field(
         default=True,
         description="Offload Whisper model after transcription"
@@ -542,6 +560,17 @@ class WhisperParams(BaseParams):
                     cls.__fields__["enable_whisperx_alignment"].default,
                 ),
                 info="Leverages WhisperX forced alignment for word-level timestamps",
+            ),
+            gr.Slider(
+                minimum=0.0,
+                maximum=1.0,
+                step=0.01,
+                label="WhisperX Minimum Word Confidence",
+                value=defaults.get(
+                    "whisperx_confidence_threshold",
+                    cls.__fields__["whisperx_confidence_threshold"].default,
+                ),
+                info=_("Discard aligned words below this WhisperX confidence score"),
             ),
             gr.Textbox(
                 label="Prepend Punctuations",

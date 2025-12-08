@@ -46,6 +46,7 @@ diarization:
   is_diarize: false
   diarization_device: cuda
   hf_token: ''
+  use_whisperx_diarization: false
   assign_word_speakers: false
   fill_nearest_speaker: false
   enable_offload: true
