@@ -32,6 +32,7 @@ whisper:
   language_detection_segments: 1
   batch_size: 24
   whisperx_confidence_threshold: 0.0
+  show_confidence: false
   enable_offload: true
   add_timestamp: false
   file_format: SRT
@@ -45,6 +46,7 @@ vad:
 diarization:
   is_diarize: false
   diarization_device: cuda
+  compute_type: float32
   hf_token: ''
   use_whisperx_diarization: false
   assign_word_speakers: false

@@ -264,6 +264,7 @@ class BaseTranscriptionPipeline(ABC):
                 use_auth_token=diarization_params.hf_token if diarization_params.hf_token else os.environ.get("HF_TOKEN"),
                 transcribed_result=result,
                 device=diarization_params.diarization_device,
+                compute_type=getattr(diarization_params, "compute_type", None),
                 tag_word_speakers=diarization_params.assign_word_speakers,
                 fill_nearest_speaker=diarization_params.fill_nearest_speaker
             )
@@ -290,7 +291,8 @@ class BaseTranscriptionPipeline(ABC):
     def _format_segments_preview(
         segments: List[Segment],
         include_word_timestamps: bool = False,
-        include_word_speakers: bool = False
+        include_word_speakers: bool = False,
+        include_confidence: bool = False,
     ) -> str:
         lines = []
         for segment in segments:
@@ -303,7 +305,11 @@ class BaseTranscriptionPipeline(ABC):
 
             start_ts = format_timestamp(seg_start)
             end_ts = format_timestamp(seg_end)
-            lines.append(f"[{start_ts} -> {end_ts}] {seg_text}")
+            confidence_label = format_confidence(get_segment_confidence(segment)) if include_confidence else None
+            if confidence_label:
+                lines.append(f"[{start_ts} -> {end_ts}] ({confidence_label}) {seg_text}")
+            else:
+                lines.append(f"[{start_ts} -> {end_ts}] {seg_text}")
 
             if include_word_timestamps and segment.words:
                 for word in segment.words:
@@ -314,6 +320,9 @@ class BaseTranscriptionPipeline(ABC):
                     word_start_ts = format_timestamp(word_start)
                     word_end_ts = format_timestamp(word_end)
                     word_label = word.word.strip()
+                    word_confidence = format_confidence(extract_probability(word)) if include_confidence else None
+                    if word_confidence:
+                        word_label = f"{word_label} ({word_confidence})"
                     speaker = None
                     if include_word_speakers:
                         speaker = getattr(word, "speaker", None) or getattr(segment, "speaker", None)
@@ -375,7 +384,8 @@ class BaseTranscriptionPipeline(ABC):
             self._check_cancelled()
             params = pipeline_params
             writer_options = {
-                "highlight_words": True if params.whisper.word_timestamps else False
+                "highlight_words": True if params.whisper.word_timestamps else False,
+                "include_confidence": bool(getattr(params.whisper, "show_confidence", False)),
             }
 
             if input_folder_path:
@@ -428,7 +438,8 @@ class BaseTranscriptionPipeline(ABC):
                 preview = self._format_segments_preview(
                     transcribed_segments,
                     include_word_timestamps=include_word_details,
-                    include_word_speakers=include_word_speakers
+                    include_word_speakers=include_word_speakers,
+                    include_confidence=getattr(params.whisper, "show_confidence", False),
                 )
                 subtitle_text = read_file(file_path)
                 files_info[file_name] = {
@@ -464,7 +475,8 @@ class BaseTranscriptionPipeline(ABC):
                 merged_preview = self._format_segments_preview(
                     merged_segments,
                     include_word_timestamps=include_word_details,
-                    include_word_speakers=include_word_speakers
+                    include_word_speakers=include_word_speakers,
+                    include_confidence=getattr(params.whisper, "show_confidence", False),
                 )
                 subtitle, merged_file_path = generate_file(
                     output_dir=self.output_dir,
@@ -555,7 +567,8 @@ class BaseTranscriptionPipeline(ABC):
             self._check_cancelled()
             params = TranscriptionPipelineParams.from_list(list(pipeline_params))
             writer_options = {
-                "highlight_words": True if params.whisper.word_timestamps else False
+                "highlight_words": True if params.whisper.word_timestamps else False,
+                "include_confidence": bool(getattr(params.whisper, "show_confidence", False)),
             }
 
             progress(0, desc="Loading Audio..")
@@ -587,7 +600,8 @@ class BaseTranscriptionPipeline(ABC):
             preview = self._format_segments_preview(
                 transcribed_segments,
                 include_word_timestamps=include_word_details,
-                include_word_speakers=include_word_speakers
+                include_word_speakers=include_word_speakers,
+                include_confidence=getattr(params.whisper, "show_confidence", False),
             )
 
             preview_text = preview if preview else subtitle
@@ -634,7 +648,8 @@ class BaseTranscriptionPipeline(ABC):
             self._check_cancelled()
             params = TranscriptionPipelineParams.from_list(list(pipeline_params))
             writer_options = {
-                "highlight_words": True if params.whisper.word_timestamps else False
+                "highlight_words": True if params.whisper.word_timestamps else False,
+                "include_confidence": bool(getattr(params.whisper, "show_confidence", False)),
             }
 
             progress(0, desc="Loading Audio from Youtube..")
@@ -670,7 +685,8 @@ class BaseTranscriptionPipeline(ABC):
             preview = self._format_segments_preview(
                 transcribed_segments,
                 include_word_timestamps=include_word_details,
-                include_word_speakers=include_word_speakers
+                include_word_speakers=include_word_speakers,
+                include_confidence=getattr(params.whisper, "show_confidence", False),
             )
 
             preview_text = preview if preview else subtitle

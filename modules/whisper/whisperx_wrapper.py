@@ -45,6 +45,7 @@ class WhisperXWrapper:
         self._diarization_pipeline: Optional[DiarizationPipeline] = None
         self._diarization_device: Optional[str] = None
         self._diarization_token: Optional[str] = None
+        self._diarization_compute_type: Optional[str] = None
 
     @staticmethod
     def _is_cuda_oom(error: RuntimeError, device: str) -> bool:
@@ -57,6 +58,14 @@ class WhisperXWrapper:
         if params.compute_type in (None, "float16"):
             return "int8"
         return params.compute_type
+
+    @staticmethod
+    def _available_diarization_compute_types(device: str) -> list[str]:
+        if device in ["cuda", "xpu"]:
+            return ["float16", "float32"]
+        if device == "mps":
+            return ["float32"]
+        return ["float32"]
 
     @staticmethod
     def _require_whisperx() -> None:
@@ -305,19 +314,26 @@ class WhisperXWrapper:
 
         resolved_device = self._resolve_device(diarization_params.diarization_device)
         token = diarization_params.hf_token or os.environ.get("HF_TOKEN")
+        available_compute_types = self._available_diarization_compute_types(resolved_device)
+        requested_compute_type = getattr(diarization_params, "compute_type", None)
+        if requested_compute_type not in available_compute_types:
+            requested_compute_type = available_compute_types[0]
 
         if (
             self._diarization_pipeline is None
             or self._diarization_device != resolved_device
             or self._diarization_token != token
+            or self._diarization_compute_type != requested_compute_type
         ):
             self._diarization_pipeline = DiarizationPipeline(
                 cache_dir=self.diarization_model_dir,
                 device=resolved_device,
                 use_auth_token=token,
+                compute_type=requested_compute_type,
             )
             self._diarization_device = resolved_device
             self._diarization_token = token
+            self._diarization_compute_type = requested_compute_type
 
         diarize_df = self._diarization_pipeline(audio)
         diarized = assign_word_speakers(
@@ -350,6 +366,9 @@ class WhisperXWrapper:
         if self._diarization_pipeline is not None:
             del self._diarization_pipeline
             self._diarization_pipeline = None
+            self._diarization_device = None
+            self._diarization_token = None
+            self._diarization_compute_type = None
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
                 torch.cuda.reset_peak_memory_stats()

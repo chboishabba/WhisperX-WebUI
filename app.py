@@ -178,14 +178,15 @@ class App:
                                                             available_compute_types=self.whisper_inf.available_compute_types,
                                                             compute_type=self.whisper_inf.current_compute_type)
             # Remove legacy alignment toggle; we replace it with the dedicated section below
-            alignment_index = None
-            for idx, component in enumerate(list(whisper_inputs)):
-                if getattr(component, "label", None) == _("Use WhisperX Alignment"):
-                    alignment_index = idx
-                    whisper_inputs.pop(idx)
-                    break
-            if alignment_index is None:
-                alignment_index = len(whisper_inputs)
+            def _pop_component(label: str) -> int:
+                for idx, component in enumerate(list(whisper_inputs)):
+                    if getattr(component, "label", None) == label:
+                        whisper_inputs.pop(idx)
+                        return idx
+                return len(whisper_inputs)
+
+            alignment_index = _pop_component(_("Use WhisperX Alignment"))
+            confidence_index = _pop_component(_("Show Confidence Scores"))
 
         with gr.Accordion(_("Background Music Remover Filter"), open=False):
             uvr_inputs = BGMSeparationParams.to_gradio_input(defaults=uvr_params,
@@ -209,9 +210,17 @@ class App:
             diarizer_device = getattr(self.whisper_inf.diarizer, "device", None)
             if diarizer_device is None and diarizer_available_devices:
                 diarizer_device = diarizer_available_devices[0]
+            diarizer_available_compute_types = getattr(self.whisper_inf.diarizer, "available_compute_types", None)
+            if diarizer_available_compute_types is None:
+                diarizer_available_compute_types = []
+            if not diarizer_available_compute_types:
+                diarizer_available_compute_types = self.whisper_inf.diarizer.get_available_compute_types(diarizer_device)
+            diarizer_compute_type = getattr(self.whisper_inf.diarizer, "compute_type", None)
             diarization_inputs = DiarizationParams.to_gradio_inputs(defaults=diarization_params,
                                                                     available_devices=diarizer_available_devices,
-                                                                    device=diarizer_device)
+                                                                    device=diarizer_device,
+                                                                    available_compute_types=diarizer_available_compute_types,
+                                                                    compute_type=diarizer_compute_type)
 
         whisper_offload_component = whisper_inputs.pop() if whisper_inputs else None
         diarization_offload_component = diarization_inputs.pop() if diarization_inputs else None
@@ -231,6 +240,12 @@ class App:
                 label=_("WhisperX Minimum Word Confidence"),
                 info=_("Discard aligned words below this WhisperX confidence score"),
             )
+            cb_confidence_scores = gr.Checkbox(
+                value=whisper_params.get("show_confidence", False),
+                label=_("Show Confidence Scores"),
+                info=_("Append confidence values to segments and words"),
+                interactive=True,
+            )
             cb_assign_word_speakers = gr.Checkbox(
                 value=diarization_params.get("assign_word_speakers", False),
                 label=_("Tag Words With Speaker Labels"),
@@ -245,6 +260,7 @@ class App:
             )
 
         whisper_inputs.insert(alignment_index, cb_whisperx_alignment)
+        whisper_inputs.insert(confidence_index, cb_confidence_scores)
         offload_insert_idx = next(
             (idx for idx, comp in enumerate(whisper_inputs) if getattr(comp, "label", None) == _("Offload sub model when finished")),
             len(whisper_inputs)
