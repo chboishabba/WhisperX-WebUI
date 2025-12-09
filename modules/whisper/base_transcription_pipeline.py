@@ -689,12 +689,14 @@ class BaseTranscriptionPipeline(ABC):
             raise RuntimeError(f"Error transcribing youtube: {e}") from e
 
     def get_compute_type(self):
+        for compute_type in self.available_compute_types:
+            if "int8" in compute_type:
+                return compute_type
         if "float16" in self.available_compute_types:
             return "float16"
         if "float32" in self.available_compute_types:
             return "float32"
-        else:
-            return self.available_compute_types[0]
+        return self.available_compute_types[0]
 
     def get_available_compute_type(self):
         if self.device == "cuda":
