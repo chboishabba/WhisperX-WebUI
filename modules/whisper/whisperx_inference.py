@@ -1,3 +1,4 @@
+import inspect
 import time
 import tempfile
 from dataclasses import replace
@@ -288,10 +289,19 @@ class WhisperXInference(BaseTranscriptionPipeline):
             or self.alignment_model is None
         ):
             progress(0, desc="Loading alignment model..")
+            align_signature = inspect.signature(whisperx.load_align_model).parameters
+            align_kwargs = {
+                "language_code": language_code,
+                "device": self.device,
+            }
+
+            if "model_dir" in align_signature:
+                align_kwargs["model_dir"] = self.model_dir
+            elif "download_root" in align_signature:
+                align_kwargs["download_root"] = self.model_dir
+
             self.alignment_model, self.alignment_metadata = whisperx.load_align_model(
-                language_code=language_code,
-                device=self.device,
-                download_root=self.model_dir,
+                **align_kwargs
             )
             self.current_alignment_language = language_code
 

@@ -1,4 +1,5 @@
 import gc
+import inspect
 import os
 import time
 from dataclasses import replace
@@ -267,12 +268,18 @@ class WhisperXWrapper:
 
         if self._align_model is None or self._align_language != language_code:
             logger.info("Loading WhisperX alignment model for language %s", language_code)
-            self._align_model, self._align_metadata = whisperx.load_align_model(
-                language_code=language_code,
-                device=resolved_device,
-                model_dir=self.model_dir,
-                download_root=self.model_dir,
-            )
+            align_signature = inspect.signature(whisperx.load_align_model).parameters
+            align_kwargs = {
+                "language_code": language_code,
+                "device": resolved_device,
+            }
+
+            if "model_dir" in align_signature:
+                align_kwargs["model_dir"] = self.model_dir
+            elif "download_root" in align_signature:
+                align_kwargs["download_root"] = self.model_dir
+
+            self._align_model, self._align_metadata = whisperx.load_align_model(**align_kwargs)
             self._align_language = language_code
 
         audio_array = load_audio(audio)
