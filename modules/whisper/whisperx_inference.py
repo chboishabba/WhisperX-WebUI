@@ -69,12 +69,9 @@ class WhisperXInference(BaseTranscriptionPipeline):
 
         self._update_transcription_options(params)
 
-        result = self.model.transcribe(
+        result = self._transcribe_with_fallback(
             prepared_audio,
-            batch_size=params.batch_size,
-            language=params.lang,
-            task="translate" if params.is_translate else "transcribe",
-            chunk_size=params.chunk_length if params.chunk_length else 30,
+            params,
         )
 
         segments_data = result.get("segments", [])
@@ -133,6 +130,39 @@ class WhisperXInference(BaseTranscriptionPipeline):
 
         elapsed_time = time.time() - start_time
         return segments_result, elapsed_time
+
+    def _transcribe_with_fallback(
+        self, audio: np.ndarray, params: WhisperParams
+    ) -> Dict[str, object]:
+        chunk_size = params.chunk_length if params.chunk_length else 30
+        task = "translate" if params.is_translate else "transcribe"
+
+        try:
+            return self.model.transcribe(
+                audio,
+                batch_size=params.batch_size,
+                language=params.lang,
+                task=task,
+                chunk_size=chunk_size,
+            )
+        except RuntimeError as error:
+            if self.device != "cuda" or "out of memory" not in str(error).lower():
+                raise
+
+            logger.warning(
+                "CUDA OOM during WhisperX transcription; retrying with batch_size=1 "
+                "and smaller chunks."
+            )
+            torch.cuda.empty_cache()
+
+            fallback_chunk = min(chunk_size, 15)
+            return self.model.transcribe(
+                audio,
+                batch_size=1,
+                language=params.lang,
+                task=task,
+                chunk_size=fallback_chunk,
+            )
 
     def update_model(
         self,
