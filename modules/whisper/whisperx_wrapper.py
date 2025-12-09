@@ -1,6 +1,7 @@
 import gc
 import os
 import time
+from dataclasses import replace
 from typing import Callable, List, Optional, Sequence, Tuple, Union
 
 import gradio as gr
@@ -80,6 +81,42 @@ class WhisperXWrapper:
             self._current_model_size = params.model_size
             self._current_compute_type = compute_type
 
+    def _update_asr_options(self, params: WhisperParams) -> None:
+        """Mirror whisper parameters onto the whisperx transcription options."""
+
+        if not hasattr(self._model, "options"):
+            return
+
+        option_updates = {
+            "beam_size": params.beam_size,
+            "best_of": params.best_of,
+            "patience": params.patience,
+            "length_penalty": params.length_penalty,
+            "repetition_penalty": params.repetition_penalty,
+            "no_repeat_ngram_size": params.no_repeat_ngram_size,
+            "compression_ratio_threshold": params.compression_ratio_threshold,
+            "log_prob_threshold": params.log_prob_threshold,
+            "no_speech_threshold": params.no_speech_threshold,
+            "condition_on_previous_text": params.condition_on_previous_text,
+            "prompt_reset_on_temperature": params.prompt_reset_on_temperature,
+            "temperatures": [params.temperature] if params.temperature is not None else None,
+            "initial_prompt": params.initial_prompt,
+            "prefix": params.prefix,
+            "suppress_blank": params.suppress_blank,
+            "suppress_tokens": params.suppress_tokens,
+            "max_initial_timestamp": params.max_initial_timestamp,
+            "without_timestamps": False,
+            "word_timestamps": params.word_timestamps,
+            "prepend_punctuations": params.prepend_punctuations,
+            "append_punctuations": params.append_punctuations,
+            "max_new_tokens": params.max_new_tokens,
+            "hallucination_silence_threshold": params.hallucination_silence_threshold,
+            "hotwords": params.hotwords,
+        }
+
+        option_updates = {k: v for k, v in option_updates.items() if v is not None}
+        self._model.options = replace(self._model.options, **option_updates)
+
     @staticmethod
     def _segments_from_dict(segments: Sequence[dict], prefix_speaker: bool = False) -> List[Segment]:
         segment_models: List[Segment] = []
@@ -143,36 +180,19 @@ class WhisperXWrapper:
         self._require_whisperx()
         resolved_device = self._resolve_device(device)
         self._load_model(params, resolved_device)
+        self._update_asr_options(params)
 
         start_time = time.time()
         audio_array = load_audio(audio)
         progress(0, desc="Transcribing with WhisperX..")
 
         task = "translate" if params.is_translate else "transcribe"
-        asr_options = {
-            "beam_size": params.beam_size,
-            "best_of": params.best_of,
-            "patience": params.patience,
-            "temperature": params.temperature,
-            "log_prob_threshold": params.log_prob_threshold,
-            "no_speech_threshold": params.no_speech_threshold,
-            "condition_on_previous_text": params.condition_on_previous_text,
-            "initial_prompt": params.initial_prompt,
-            "prefix": params.prefix,
-            "suppress_blank": params.suppress_blank,
-            "suppress_tokens": params.suppress_tokens,
-            "max_initial_timestamp": params.max_initial_timestamp,
-            "without_timestamps": False,
-        }
-        # Remove None entries that the whisperx API would reject.
-        asr_options = {k: v for k, v in asr_options.items() if v is not None}
-
         result = self._model.transcribe(
             audio_array,
             batch_size=params.batch_size,
             language=params.lang,
             task=task,
-            **asr_options,
+            chunk_size=params.chunk_length,
         )
 
         language = result.get("language") or params.lang
