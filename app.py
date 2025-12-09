@@ -1,6 +1,7 @@
 import os
 import argparse
 import inspect
+import threading
 import gradio as gr
 from gradio_i18n import Translate, gettext as _
 import yaml
@@ -37,6 +38,8 @@ class App:
             uvr_model_dir=self.args.uvr_model_dir,
             output_dir=self.args.output_dir,
         )
+        self.cancel_event = threading.Event()
+        self.whisper_inf.set_cancel_event(self.cancel_event)
         self.nllb_inf = NLLBInference(
             model_dir=self.args.nllb_model_dir,
             output_dir=os.path.join(self.args.output_dir, "translations")
@@ -81,6 +84,15 @@ class App:
     def _pipeline_from_values(*pipeline_values):
         return TranscriptionPipelineParams.from_list(list(pipeline_values))
 
+    def _reset_cancellation(self):
+        if self.cancel_event:
+            self.cancel_event.clear()
+
+    def _request_cancel(self):
+        if self.cancel_event:
+            self.cancel_event.set()
+        return _("Cancellation requested. Stopping transcription...")
+
     def _transcribe_file(
         self,
         files,
@@ -92,6 +104,7 @@ class App:
         add_timestamp,
         *pipeline_values,
     ):
+        self._reset_cancellation()
         params = self._pipeline_from_values(*pipeline_values)
         return self.whisper_inf.transcribe_file(
             files=files,
@@ -105,6 +118,7 @@ class App:
         )
 
     def _transcribe_youtube(self, youtube_link, file_format, add_timestamp, *pipeline_values):
+        self._reset_cancellation()
         params = self._pipeline_from_values(*pipeline_values)
         return self.whisper_inf.transcribe_youtube(
             youtube_link,
@@ -114,6 +128,7 @@ class App:
         )
 
     def _transcribe_mic(self, mic_audio, file_format, add_timestamp, *pipeline_values):
+        self._reset_cancellation()
         params = self._pipeline_from_values(*pipeline_values)
         return self.whisper_inf.transcribe_mic(
             mic_audio,
@@ -298,8 +313,8 @@ class App:
 
                         with gr.Row():
                             btn_run = gr.Button(_("GENERATE SUBTITLE FILE"), variant="primary")
-                            btn_cancel_file = gr.Button(_("Cancel This Transcription"), variant="stop")
-                            btn_cancel_all_file = gr.Button(_("Cancel All Transcriptions"), variant="secondary")
+                        btn_cancel_file = gr.Button(_("Cancel This Transcription"), variant="stop")
+                        btn_cancel_all_file = gr.Button(_("Cancel All Transcriptions"), variant="secondary")
                         with gr.Row():
                             tb_indicator = gr.Textbox(label=_("Output"), scale=5)
                             files_subtitles = gr.Files(label=_("Downloadable output file"), scale=3, interactive=False)
@@ -315,8 +330,13 @@ class App:
                             outputs=[tb_indicator, files_subtitles],
                         )
                         transcription_events.append(file_run_event)
-                        btn_cancel_file.click(fn=None, inputs=None, outputs=None, cancels=[file_run_event])
-                        cancel_all_buttons.append(btn_cancel_all_file)
+                        btn_cancel_file.click(
+                            fn=self._request_cancel,
+                            inputs=None,
+                            outputs=[tb_indicator],
+                            cancels=[file_run_event],
+                        )
+                        cancel_all_buttons.append((btn_cancel_all_file, tb_indicator))
                         btn_openfolder.click(fn=lambda: self.open_folder("outputs"), inputs=None, outputs=None)
 
                     with gr.TabItem(_("Youtube")):  # tab2
@@ -348,8 +368,13 @@ class App:
                             outputs=[tb_indicator, files_subtitles],
                         )
                         transcription_events.append(youtube_run_event)
-                        btn_cancel_youtube.click(fn=None, inputs=None, outputs=None, cancels=[youtube_run_event])
-                        cancel_all_buttons.append(btn_cancel_all_youtube)
+                        btn_cancel_youtube.click(
+                            fn=self._request_cancel,
+                            inputs=None,
+                            outputs=[tb_indicator],
+                            cancels=[youtube_run_event],
+                        )
+                        cancel_all_buttons.append((btn_cancel_all_youtube, tb_indicator))
                         tb_youtubelink.change(get_ytmetas, inputs=[tb_youtubelink],
                                               outputs=[img_thumbnail, tb_title, tb_description])
                         btn_openfolder.click(fn=lambda: self.open_folder("outputs"), inputs=None, outputs=None)
@@ -384,15 +409,20 @@ class App:
                             outputs=[tb_indicator, files_subtitles],
                         )
                         transcription_events.append(mic_run_event)
-                        btn_cancel_mic.click(fn=None, inputs=None, outputs=None, cancels=[mic_run_event])
-                        cancel_all_buttons.append(btn_cancel_all_mic)
+                        btn_cancel_mic.click(
+                            fn=self._request_cancel,
+                            inputs=None,
+                            outputs=[tb_indicator],
+                            cancels=[mic_run_event],
+                        )
+                        cancel_all_buttons.append((btn_cancel_all_mic, tb_indicator))
                         btn_openfolder.click(fn=lambda: self.open_folder("outputs"), inputs=None, outputs=None)
 
-                    for cancel_button in cancel_all_buttons:
+                    for cancel_button, indicator in cancel_all_buttons:
                         cancel_button.click(
-                            fn=None,
+                            fn=self._request_cancel,
                             inputs=None,
-                            outputs=None,
+                            outputs=[indicator],
                             cancels=transcription_events,
                         )
 

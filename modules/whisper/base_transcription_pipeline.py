@@ -5,6 +5,7 @@ import gradio as gr
 import torchaudio
 from abc import ABC, abstractmethod
 from typing import BinaryIO, Optional, Union, Tuple, List, Callable
+import threading
 import numpy as np
 from datetime import datetime
 from faster_whisper.vad import VadOptions
@@ -58,6 +59,16 @@ class BaseTranscriptionPipeline(ABC):
         self.available_compute_types = self.get_available_compute_type()
         self.current_compute_type = self.get_compute_type()
         self.whisperx_wrapper: Optional[WhisperXWrapper] = None
+        self.cancel_event: threading.Event | None = threading.Event()
+
+    def set_cancel_event(self, cancel_event: threading.Event | None) -> None:
+        """Register an event that signals when ongoing work should stop."""
+
+        self.cancel_event = cancel_event
+
+    def _check_cancelled(self) -> None:
+        if self.cancel_event and self.cancel_event.is_set():
+            raise gr.Error("Transcription cancelled")
 
     @abstractmethod
     def transcribe(
@@ -120,6 +131,8 @@ class BaseTranscriptionPipeline(ABC):
         """
         start_time = time.time()
 
+        self._check_cancelled()
+
         if not validate_audio(audio):
             return [Segment()], 0
 
@@ -148,6 +161,8 @@ class BaseTranscriptionPipeline(ABC):
             if bgm_params.enable_offload:
                 self.music_separator.offload()
             elapsed_time_bgm_sep = time.time() - start_time
+
+        self._check_cancelled()
 
         origin_audio = deepcopy(audio)
 
@@ -180,6 +195,8 @@ class BaseTranscriptionPipeline(ABC):
             else:
                 vad_params.vad_filter = False
 
+        self._check_cancelled()
+
         if use_whisperx:
             if self.whisperx_wrapper is None:
                 self.whisperx_wrapper = WhisperXWrapper(
@@ -201,6 +218,8 @@ class BaseTranscriptionPipeline(ABC):
                 *whisper_params.to_list()
             )
 
+        self._check_cancelled()
+
         if vad_params.vad_filter:
             restored_result = self.vad.restore_speech_timestamps(
                 segments=result,
@@ -220,6 +239,8 @@ class BaseTranscriptionPipeline(ABC):
                 device=self.device,
             )
 
+        self._check_cancelled()
+
         if whisper_params.enable_offload:
             self.offload()
 
@@ -234,6 +255,8 @@ class BaseTranscriptionPipeline(ABC):
             if diarization_params.enable_offload and self.whisperx_wrapper is not None:
                 self.whisperx_wrapper.offload_diarizer()
 
+            self._check_cancelled()
+
         if diarization_params.is_diarize and not diarization_done:
             progress(0.99, desc="Diarizing speakers..")
             result, elapsed_time_diarization = self.diarizer.run(
@@ -246,6 +269,8 @@ class BaseTranscriptionPipeline(ABC):
             )
             if diarization_params.enable_offload:
                 self.diarizer.offload()
+
+            self._check_cancelled()
 
         self.cache_parameters(
             params=params,
@@ -347,6 +372,7 @@ class BaseTranscriptionPipeline(ABC):
             Output file path to return to gr.Files()
         """
         try:
+            self._check_cancelled()
             params = pipeline_params
             writer_options = {
                 "highlight_words": True if params.whisper.word_timestamps else False
@@ -364,6 +390,7 @@ class BaseTranscriptionPipeline(ABC):
             merged_file_name = "merged_subtitles"
             cumulative_offset = 0.0
             for file in files:
+                self._check_cancelled()
                 transcribed_segments, time_for_task = self.run(
                     file,
                     progress,
@@ -457,6 +484,8 @@ class BaseTranscriptionPipeline(ABC):
 
             return result_str, result_file_path
 
+        except gr.Error:
+            raise
         except Exception as e:
             raise RuntimeError(f"Error transcribing file: {e}") from e
 
@@ -523,6 +552,7 @@ class BaseTranscriptionPipeline(ABC):
             Output file path to return to gr.Files()
         """
         try:
+            self._check_cancelled()
             params = TranscriptionPipelineParams.from_list(list(pipeline_params))
             writer_options = {
                 "highlight_words": True if params.whisper.word_timestamps else False
@@ -565,6 +595,8 @@ class BaseTranscriptionPipeline(ABC):
                 f"Done in {self.format_time(time_for_task)}! Subtitle file is in the outputs folder.\n\n{preview_text}"
             )
             return result_str, file_path
+        except gr.Error:
+            raise
         except Exception as e:
             raise RuntimeError(f"Error transcribing mic: {e}") from e
 
@@ -599,6 +631,7 @@ class BaseTranscriptionPipeline(ABC):
             Output file path to return to gr.Files()
         """
         try:
+            self._check_cancelled()
             params = TranscriptionPipelineParams.from_list(list(pipeline_params))
             writer_options = {
                 "highlight_words": True if params.whisper.word_timestamps else False
@@ -650,6 +683,8 @@ class BaseTranscriptionPipeline(ABC):
 
             return result_str, file_path
 
+        except gr.Error:
+            raise
         except Exception as e:
             raise RuntimeError(f"Error transcribing youtube: {e}") from e
 
