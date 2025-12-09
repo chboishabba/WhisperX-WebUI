@@ -419,7 +419,7 @@ class BaseTranscriptionPipeline(ABC):
                         output_format=file_format,
                         result=transcribed_segments,
                         add_timestamp=add_timestamp,
-                        **writer_options
+                        options=writer_options,
                     )
 
                 subtitle, file_path = generate_file(
@@ -428,7 +428,7 @@ class BaseTranscriptionPipeline(ABC):
                     output_format=file_format,
                     result=transcribed_segments,
                     add_timestamp=add_timestamp,
-                    **writer_options
+                    options=writer_options,
                 )
                 include_word_details = (
                     params.whisper.enable_whisperx_alignment and
@@ -484,7 +484,7 @@ class BaseTranscriptionPipeline(ABC):
                     output_format=file_format,
                     result=merged_segments,
                     add_timestamp=add_timestamp,
-                    **writer_options,
+                    options=writer_options,
                 )
                 preview_text = merged_preview if merged_preview else subtitle
                 result_str = (
@@ -589,7 +589,7 @@ class BaseTranscriptionPipeline(ABC):
                 output_format=file_format,
                 result=transcribed_segments,
                 add_timestamp=add_timestamp,
-                **writer_options
+                options=writer_options,
             )
 
             include_word_details = (
@@ -674,7 +674,7 @@ class BaseTranscriptionPipeline(ABC):
                 output_format=file_format,
                 result=transcribed_segments,
                 add_timestamp=add_timestamp,
-                **writer_options
+                options=writer_options,
             )
 
             include_word_details = (
