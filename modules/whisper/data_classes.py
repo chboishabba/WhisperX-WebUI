@@ -426,14 +426,17 @@ class WhisperParams(BaseParams):
             raise ValueError(f"Invalid Suppress Tokens. The value must be type of List[int]: {e}")
 
     @classmethod
-    def to_gradio_inputs(cls,
-                         defaults: Optional[Dict] = None,
-                         only_advanced: Optional[bool] = True,
-                         whisper_type: Optional[str] = None,
-                         available_models: Optional[List] = None,
-                         available_langs: Optional[List] = None,
-                         available_compute_types: Optional[List] = None,
-                         compute_type: Optional[str] = None):
+    def to_gradio_inputs(
+        cls,
+        defaults: Optional[Dict] = None,
+        only_advanced: Optional[bool] = True,
+        whisper_type: Optional[str] = None,
+        available_models: Optional[List] = None,
+        available_langs: Optional[List] = None,
+        available_compute_types: Optional[List] = None,
+        compute_type: Optional[str] = None,
+        include_whisperx_controls: bool = True,
+    ):
         whisper_type = WhisperImpl.WHISPERX.value if whisper_type is None else whisper_type.strip().lower()
 
         inputs = []
@@ -573,11 +576,16 @@ class WhisperParams(BaseParams):
                 value=defaults.get("word_timestamps", cls.__fields__["word_timestamps"].default),
                 info="Extract word-level timestamps"
             ),
-            gr.Checkbox(
-                label="Use WhisperX Alignment",
-                value=defaults.get(
-                    "enable_whisperx_alignment",
-                    cls.__fields__["enable_whisperx_alignment"].default,
+        ]
+        if include_whisperx_controls:
+            faster_whisper_inputs.extend([
+                gr.Checkbox(
+                    label="Use WhisperX Alignment",
+                    value=defaults.get(
+                        "enable_whisperx_alignment",
+                        cls.__fields__["enable_whisperx_alignment"].default,
+                    ),
+                    info="Leverages WhisperX forced alignment for word-level timestamps",
                 ),
                 info="Leverages WhisperX forced alignment for word-level timestamps",
             ),

@@ -210,40 +210,53 @@ class WhisperXWrapper:
         progress(0, desc="Transcribing with WhisperX..")
 
         task = "translate" if active_params.is_translate else "transcribe"
-        try:
-            result = self._model.transcribe(
-                audio_array,
-                batch_size=active_params.batch_size,
-                language=active_params.lang,
-                task=task,
-                chunk_size=active_params.chunk_length,
-            )
-        except RuntimeError as exc:
-            if not self._is_cuda_oom(exc, resolved_device):
-                raise
+        batch_size = max(1, active_params.batch_size)
+        while True:
+            try:
+                result = self._model.transcribe(
+                    audio_array,
+                    batch_size=batch_size,
+                    language=active_params.lang,
+                    task=task,
+                    chunk_size=active_params.chunk_length,
+                )
+                params.batch_size = batch_size
+                params.compute_type = active_params.compute_type
+                break
+            except RuntimeError as exc:
+                if not self._is_cuda_oom(exc, resolved_device):
+                    raise
 
-            logger.warning(
-                "CUDA OOM during WhisperX transcription; retrying on CPU with reduced compute type.",
-                exc_info=True,
-            )
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+                logger.warning(
+                    "CUDA OOM during WhisperX transcription with batch size %s on %s; retrying.",
+                    batch_size,
+                    resolved_device,
+                    exc_info=True,
+                )
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
-            resolved_device = "cpu"
-            active_params = params.model_copy(
-                update={"compute_type": self._cpu_fallback_compute_type(params)}
-            )
-            self._model = None
-            self._load_model(active_params, resolved_device)
-            self._update_asr_options(active_params)
-            progress(0, desc="Retrying WhisperX on CPU after CUDA OOM..")
-            result = self._model.transcribe(
-                audio_array,
-                batch_size=active_params.batch_size,
-                language=active_params.lang,
-                task=task,
-                chunk_size=active_params.chunk_length,
-            )
+                reduced_batch_size = max(1, batch_size // 2)
+                if reduced_batch_size < batch_size:
+                    batch_size = reduced_batch_size
+                    active_params = active_params.model_copy(update={"batch_size": batch_size})
+                    progress(0, desc=f"Retrying WhisperX with batch size {batch_size}..")
+                    continue
+
+                if resolved_device == "cpu":
+                    raise
+
+                resolved_device = "cpu"
+                active_params = params.model_copy(
+                    update={
+                        "compute_type": self._cpu_fallback_compute_type(params),
+                        "batch_size": batch_size,
+                    }
+                )
+                self._model = None
+                self._load_model(active_params, resolved_device)
+                self._update_asr_options(active_params)
+                progress(0, desc="Retrying WhisperX on CPU after CUDA OOM..")
 
         language = result.get("language") or active_params.lang
         segments_data = result.get("segments", [])

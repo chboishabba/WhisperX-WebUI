@@ -176,7 +176,8 @@ class App:
             whisper_inputs = WhisperParams.to_gradio_inputs(defaults=whisper_params, only_advanced=True,
                                                             whisper_type=self.args.whisper_type,
                                                             available_compute_types=self.whisper_inf.available_compute_types,
-                                                            compute_type=self.whisper_inf.current_compute_type)
+                                                            compute_type=self.whisper_inf.current_compute_type,
+                                                            include_whisperx_controls=False)
             # Remove legacy alignment toggle; we replace it with the dedicated section below
             def _pop_component(label: str) -> tuple[int, gr.components.Component | None]:
                 for idx, component in enumerate(list(whisper_inputs)):
