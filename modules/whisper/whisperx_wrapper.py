@@ -285,7 +285,7 @@ class WhisperXWrapper:
             self._model = None
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-                torch.cuda.reset_max_memory_allocated()
+                torch.cuda.reset_peak_memory_stats()
             gc.collect()
 
     def offload_alignment(self) -> None:
@@ -296,7 +296,7 @@ class WhisperXWrapper:
             self._align_language = None
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-                torch.cuda.reset_max_memory_allocated()
+                torch.cuda.reset_peak_memory_stats()
             gc.collect()
 
     def offload_diarizer(self) -> None:
@@ -305,7 +305,7 @@ class WhisperXWrapper:
             self._diarization_pipeline = None
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-                torch.cuda.reset_max_memory_allocated()
+                torch.cuda.reset_peak_memory_stats()
             gc.collect()
 
     def offload_all(self) -> None:

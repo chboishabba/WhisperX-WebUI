@@ -149,7 +149,7 @@ class Diarizer:
             self.pipe = None
         if self.device == "cuda":
             torch.cuda.empty_cache()
-            torch.cuda.reset_max_memory_allocated()
+            torch.cuda.reset_peak_memory_stats()
         if self.device == "xpu":
             torch.xpu.empty_cache()
             torch.xpu.reset_accumulated_memory_stats()
