@@ -186,9 +186,9 @@ class App:
                         return idx, component
                 return len(whisper_inputs), None
 
-            alignment_index, _ = _pop_component(_("Use WhisperX Alignment"))
-            confidence_index, _ = _pop_component(_("Show Confidence Scores"))
-            confidence_threshold_index, _ = _pop_component(_("WhisperX Minimum Word Confidence"))
+            alignment_index, removed_alignment_component = _pop_component(_("Use WhisperX Alignment"))
+            confidence_index, removed_confidence_component = _pop_component(_("Show Confidence Scores"))
+            confidence_threshold_index, removed_confidence_threshold_component = _pop_component(_("WhisperX Minimum Word Confidence"))
 
         with gr.Accordion(_("Background Music Remover Filter"), open=False):
             uvr_inputs = BGMSeparationParams.to_gradio_input(defaults=uvr_params,
