@@ -11,8 +11,9 @@ If you wish to try this on Colab, you can do it in [here](https://colab.research
 # Feature
 - Select the Whisper implementation you want to use between :
    - [openai/whisper](https://github.com/openai/whisper)
-   - [SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-whisper) (used by default)
+   - [SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-whisper)
    - [Vaibhavs10/insanely-fast-whisper](https://github.com/Vaibhavs10/insanely-fast-whisper)
+   - [m-bain/whisperX](https://github.com/m-bain/whisperX) (used by default)
 - Generate subtitles from various sources, including :
   - Files
   - Youtube
@@ -133,7 +134,9 @@ For the backend service, add the same token to `backend/configs/.env` (see the b
 - **Speaker diarization:** Expand the **Diarization** accordion, enable diarization, and choose the device (GPU recommended). If you supplied `HF_TOKEN`, the WebUI will download and cache the pyannote pipeline automatically.
 
 # VRAM Usages
-This project is integrated with [faster-whisper](https://github.com/guillaumekln/faster-whisper) by default for better VRAM usage and transcription speed.
+This project starts with [WhisperX](https://github.com/m-bain/whisperX) by default to enable alignment-friendly transcriptions.
+
+The [faster-whisper](https://github.com/guillaumekln/faster-whisper) backend remains available and offers the following efficiency profile:
 
 According to faster-whisper, the efficiency of the optimized whisper model is as follows: 
 | Implementation    | Precision | Beam size | Time  | Max. GPU memory | Max. CPU memory |
