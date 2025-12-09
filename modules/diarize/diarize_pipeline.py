@@ -53,13 +53,21 @@ class DiarizationPipeline:
         cache_dir: Optional[str] = None,
         use_auth_token=None,
         device: Optional[Union[str, torch.device]] = "cpu",
+        compute_type: Optional[str] = None,
     ):
         cache_dir = cache_dir or os.path.join(WHISPERX_MODELS_DIR, "diarization")
         if isinstance(device, str):
             device = torch.device(device)
+        dtype = None
+        if compute_type == "float16":
+            dtype = torch.float16
+        elif compute_type == "bfloat16":
+            dtype = torch.bfloat16
+        elif compute_type == "float32":
+            dtype = torch.float32
         self.model = Pipeline.from_pretrained(
             model_name, use_auth_token=use_auth_token, cache_dir=cache_dir
-        ).to(device)
+        ).to(device=device, dtype=dtype)
 
     def __call__(
         self, audio: Union[str, np.ndarray], min_speakers=None, max_speakers=None

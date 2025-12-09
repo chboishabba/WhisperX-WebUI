@@ -161,6 +161,7 @@ class DiarizationParams(BaseParams):
     """Speaker diarization parameters"""
     is_diarize: bool = Field(default=False, description="Enable speaker diarization")
     diarization_device: str = Field(default="cuda", description="Device to run Diarization model.")
+    compute_type: str = Field(default="float32", description="Computation type for diarization")
     hf_token: str = Field(
         default="",
         description="Hugging Face token for downloading diarization models"
@@ -186,12 +187,18 @@ class DiarizationParams(BaseParams):
     def to_gradio_inputs(cls,
                          defaults: Optional[Dict] = None,
                          available_devices: Optional[List] = None,
-                         device: Optional[str] = None) -> List[gr.components.base.FormComponent]:
+                         device: Optional[str] = None,
+                         available_compute_types: Optional[List] = None,
+                         compute_type: Optional[str] = None) -> List[gr.components.base.FormComponent]:
         defaults = defaults or {}
         device_choices = ["cpu", "cuda", "xpu"] if available_devices is None else available_devices
         default_device = defaults.get("diarization_device", device)
         if device_choices and default_device not in device_choices:
             default_device = device_choices[0]
+        compute_type_choices = available_compute_types or [cls.__fields__["compute_type"].default]
+        compute_type_value = defaults.get("compute_type", compute_type)
+        if compute_type_value not in compute_type_choices:
+            compute_type_value = compute_type_choices[0]
         return [
             gr.Checkbox(
                 label=_("Enable Diarization"),
@@ -201,6 +208,12 @@ class DiarizationParams(BaseParams):
                 label=_("Device"),
                 choices=device_choices,
                 value=default_device,
+            ),
+            gr.Dropdown(
+                label=_("Compute Type"),
+                choices=compute_type_choices,
+                value=compute_type_value,
+                interactive=True,
             ),
             gr.Textbox(
                 label=_("HuggingFace Token"),
@@ -384,6 +397,10 @@ class WhisperParams(BaseParams):
         le=1.0,
         description="Minimum WhisperX confidence score to keep aligned words"
     )
+    show_confidence: bool = Field(
+        default=False,
+        description="Display confidence scores for segments and words",
+    )
     enable_offload: bool = Field(
         default=True,
         description="Offload Whisper model after transcription"
@@ -563,6 +580,11 @@ class WhisperParams(BaseParams):
                     cls.__fields__["enable_whisperx_alignment"].default,
                 ),
                 info="Leverages WhisperX forced alignment for word-level timestamps",
+            ),
+            gr.Checkbox(
+                label=_("Show Confidence Scores"),
+                value=defaults.get("show_confidence", cls.__fields__["show_confidence"].default),
+                info=_("Append confidence values to segment and word outputs"),
             ),
             gr.Textbox(
                 label="Prepend Punctuations",

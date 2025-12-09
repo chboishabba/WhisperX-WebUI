@@ -18,7 +18,8 @@ class Diarizer:
                  ):
         self.device = self.get_device()
         self.available_device = self.get_available_device()
-        self.compute_type = "float16"
+        self.available_compute_types = self.get_available_compute_types(self.device)
+        self.compute_type = self.available_compute_types[0] if self.available_compute_types else "float32"
         self.model_dir = model_dir or os.path.join(WHISPERX_MODELS_DIR, "diarization")
         os.makedirs(self.model_dir, exist_ok=True)
         self.pipe = None
@@ -28,6 +29,7 @@ class Diarizer:
             transcribed_result: List[Segment],
             use_auth_token: str,
             device: Optional[str] = None,
+            compute_type: Optional[str] = None,
             tag_word_speakers: bool = False,
             fill_nearest_speaker: bool = False
             ) -> Tuple[List[Segment], float]:
@@ -65,7 +67,8 @@ class Diarizer:
         if device != self.device or self.pipe is None:
             self.update_pipe(
                 device=device,
-                use_auth_token=use_auth_token
+                use_auth_token=use_auth_token,
+                compute_type=compute_type,
             )
 
         audio = load_audio(audio)
@@ -106,6 +109,7 @@ class Diarizer:
     def update_pipe(self,
                     use_auth_token: Optional[str] = None,
                     device: Optional[str] = None,
+                    compute_type: Optional[str] = None,
                     ):
         """
         Set pipeline for diarization
@@ -121,6 +125,11 @@ class Diarizer:
         if device is None:
             device = self.get_device()
         self.device = device
+        self.available_compute_types = self.get_available_compute_types(device)
+        selected_compute_type = compute_type or self.compute_type
+        if self.available_compute_types and selected_compute_type not in self.available_compute_types:
+            selected_compute_type = self.available_compute_types[0]
+        self.compute_type = selected_compute_type
 
         os.makedirs(self.model_dir, exist_ok=True)
 
@@ -138,7 +147,8 @@ class Diarizer:
         self.pipe = DiarizationPipeline(
             use_auth_token=use_auth_token,
             device=device,
-            cache_dir=self.model_dir
+            cache_dir=self.model_dir,
+            compute_type=self.compute_type,
         )
         logger.disabled = False
 
@@ -177,3 +187,12 @@ class Diarizer:
         if torch.backends.mps.is_available():
             devices.append("mps")
         return devices
+
+    @staticmethod
+    def get_available_compute_types(device: Optional[str] = None):
+        target_device = device or Diarizer.get_device()
+        if target_device in ["cuda", "xpu"]:
+            return ["float16", "float32"]
+        if target_device == "mps":
+            return ["float32"]
+        return ["float32"]

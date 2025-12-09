@@ -2,6 +2,7 @@
 
 import json
 import os
+import math
 import re
 import sys
 import zlib
@@ -65,6 +66,45 @@ def get_end(segments: List[dict]) -> Optional[float]:
         (w["end"] for s in reversed(segments) for w in reversed(s["words"])),
         segments[-1]["end"] if segments else None,
     )
+
+
+def extract_probability(word: Union[Word, dict, None]) -> Optional[float]:
+    if word is None:
+        return None
+    if isinstance(word, Word):
+        return word.probability
+    if isinstance(word, dict):
+        return word.get("probability")
+    return None
+
+
+def get_segment_confidence(segment: Union[Segment, dict]) -> Optional[float]:
+    if isinstance(segment, Segment):
+        segment_dict = segment.model_dump()
+    else:
+        segment_dict = segment
+
+    word_confidences = [
+        prob
+        for prob in (
+            extract_probability(word)
+            for word in segment_dict.get("words") or []
+        )
+        if prob is not None
+    ]
+    if word_confidences:
+        return sum(word_confidences) / len(word_confidences)
+
+    avg_logprob = segment_dict.get("avg_logprob")
+    if avg_logprob is not None:
+        return math.exp(avg_logprob)
+    return None
+
+
+def format_confidence(value: Optional[float]) -> Optional[str]:
+    if value is None:
+        return None
+    return f"{value:.2f}"
 
 
 class ResultWriter:
@@ -140,9 +180,22 @@ class SubtitlesWriter(ResultWriter):
         highlight_words = highlight_words or options.get("highlight_words", False)
         align_lrc_words = align_lrc_words or options.get("align_lrc_words", False)
         max_words_per_line = max_words_per_line or options.get("max_words_per_line")
+        include_confidence = options.get("include_confidence", False)
         preserve_segments = max_line_count is None or max_line_width is None
         max_line_width = max_line_width or 1000
         max_words_per_line = max_words_per_line or 1000
+
+        def render_segment_confidence(segment: dict) -> str:
+            confidence = format_confidence(get_segment_confidence(segment)) if include_confidence else None
+            return f" (conf: {confidence})" if confidence is not None else ""
+
+        def render_word_label(word: dict) -> str:
+            label = word.get("word", "")
+            if include_confidence:
+                word_confidence = format_confidence(extract_probability(word))
+                if word_confidence is not None:
+                    label = f"{label} ({word_confidence})"
+            return label
 
         def iterate_subtitles():
             line_len = 0
@@ -202,10 +255,10 @@ class SubtitlesWriter(ResultWriter):
             for subtitle in iterate_subtitles():
                 subtitle_start = self.format_timestamp(subtitle[0]["start"])
                 subtitle_end = self.format_timestamp(subtitle[-1]["end"])
-                subtitle_text = "".join([word["word"] for word in subtitle])
+                subtitle_text = "".join([render_word_label(word) for word in subtitle])
                 if highlight_words:
                     last = subtitle_start
-                    all_words = [timing["word"] for timing in subtitle]
+                    all_words = [render_word_label(timing) for timing in subtitle]
                     for i, this_word in enumerate(subtitle):
                         start = self.format_timestamp(this_word["start"])
                         end = self.format_timestamp(this_word["end"])
@@ -223,9 +276,14 @@ class SubtitlesWriter(ResultWriter):
                         last = end
 
                 if align_lrc_words:
-                    lrc_aligned_words = [f"[{self.format_timestamp(sub['start'])}]{sub['word']}" for sub in subtitle]
+                    lrc_aligned_words = [
+                        f"[{self.format_timestamp(sub['start'])}]{render_word_label(sub)}"
+                        for sub in subtitle
+                    ]
                     l_start, l_end = self.format_timestamp(subtitle[-1]['start']), self.format_timestamp(subtitle[-1]['end'])
-                    lrc_aligned_words[-1] = f"[{l_start}]{subtitle[-1]['word']}[{l_end}]"
+                    lrc_aligned_words[-1] = (
+                        f"[{l_start}]{render_word_label(subtitle[-1])}[{l_end}]"
+                    )
                     lrc_aligned_words = ' '.join(lrc_aligned_words)
                     yield None, None, lrc_aligned_words
 
@@ -238,7 +296,10 @@ class SubtitlesWriter(ResultWriter):
 
                 segment_start = self.format_timestamp(segment["start"])
                 segment_end = self.format_timestamp(segment["end"])
+                confidence_label = render_segment_confidence(segment)
                 segment_text = segment["text"].strip().replace("-->", "->")
+                if confidence_label:
+                    segment_text = f"{segment_text} {confidence_label}"
                 yield segment_start, segment_end, segment_text
 
     def format_timestamp(self, seconds: float):
