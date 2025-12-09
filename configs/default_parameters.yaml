@@ -5,7 +5,7 @@ whisper:
   beam_size: 5
   log_prob_threshold: -1.0
   no_speech_threshold: 0.6
-  compute_type: float32
+  compute_type: int8
   best_of: 5
   patience: 1.0
   condition_on_previous_text: true

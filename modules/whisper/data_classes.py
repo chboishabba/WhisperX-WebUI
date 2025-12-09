@@ -306,7 +306,7 @@ class WhisperParams(BaseParams):
         le=1.0,
         description="Threshold for detecting silence"
     )
-    compute_type: str = Field(default="float16", description="Computation type for transcription")
+    compute_type: str = Field(default="int8", description="Computation type for transcription")
     best_of: int = Field(default=5, ge=1, description="Number of candidates when sampling")
     patience: float = Field(default=1.0, gt=0, description="Beam search patience factor")
     condition_on_previous_text: bool = Field(
@@ -438,6 +438,13 @@ class WhisperParams(BaseParams):
                 ),
             ]
 
+        compute_type_value = defaults.get("compute_type", compute_type)
+        if (
+            available_compute_types
+            and compute_type_value not in available_compute_types
+        ):
+            compute_type_value = compute_type or available_compute_types[0]
+
         inputs += [
             gr.Number(
                 label="Beam Size",
@@ -458,7 +465,7 @@ class WhisperParams(BaseParams):
             gr.Dropdown(
                 label="Compute Type",
                 choices=["float16", "int8", "int16"] if available_compute_types is None else available_compute_types,
-                value=defaults.get("compute_type", compute_type),
+                value=compute_type_value,
                 info="Computation type for transcription"
             ),
             gr.Number(

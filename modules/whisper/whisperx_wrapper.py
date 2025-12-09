@@ -75,7 +75,7 @@ class WhisperXWrapper:
 
     def _load_model(self, params: WhisperParams, device: str) -> None:
         self._require_whisperx()
-        compute_type = params.compute_type or "float16"
+        compute_type = params.compute_type or "int8"
         if (
             self._model is None
             or self._current_model_size != params.model_size
