@@ -20,7 +20,7 @@ logger = get_logger()
 class WhisperFactory:
     @staticmethod
     def create_whisper_inference(
-        whisper_type: str,
+        whisper_type: Optional[str] = None,
         whisper_model_dir: str = WHISPER_MODELS_DIR,
         faster_whisper_model_dir: str = FASTER_WHISPER_MODELS_DIR,
         insanely_fast_whisper_model_dir: str = INSANELY_FAST_WHISPER_MODELS_DIR,
@@ -35,7 +35,7 @@ class WhisperFactory:
         Parameters
         ----------
         whisper_type : str
-            The type of Whisper implementation to use. Supported values (case-insensitive):
+            The type of Whisper implementation to use (defaults to "whisperx"). Supported values (case-insensitive):
             - "faster-whisper": https://github.com/openai/whisper
             - "whisper": https://github.com/openai/whisper
             - "insanely-fast-whisper": https://github.com/Vaibhavs10/insanely-fast-whisper
@@ -61,7 +61,7 @@ class WhisperFactory:
         # Temporal fix of the bug : https://github.com/jhj0517/Whisper-WebUI/issues/144
         os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-        whisper_type = whisper_type.strip().lower()
+        whisper_type = (whisper_type or WhisperImpl.WHISPERX.value).strip().lower()
 
         if whisper_type == WhisperImpl.FASTER_WHISPER.value:
             if torch.xpu.is_available():
@@ -102,9 +102,9 @@ class WhisperFactory:
                 uvr_model_dir=uvr_model_dir,
             )
         else:
-            return FasterWhisperInference(
-                model_dir=faster_whisper_model_dir,
+            return WhisperXInference(
+                model_dir=whisper_model_dir,
                 output_dir=output_dir,
                 diarization_model_dir=diarization_model_dir,
-                uvr_model_dir=uvr_model_dir
+                uvr_model_dir=uvr_model_dir,
             )
