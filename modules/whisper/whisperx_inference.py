@@ -1,6 +1,7 @@
 import time
 import tempfile
-from typing import BinaryIO, Callable, List, Optional, Tuple, Union
+from dataclasses import replace
+from typing import BinaryIO, Callable, Dict, List, Optional, Tuple, Union
 
 import gradio as gr
 import numpy as np
@@ -58,32 +59,22 @@ class WhisperXInference(BaseTranscriptionPipeline):
         ):
             self.update_model(params.model_size, params.compute_type, progress)
 
+        if self.model is None:
+            msg = "WhisperX model failed to load before transcription"
+            logger.error(msg)
+            raise RuntimeError(msg)
+
         progress(0, desc="Loading audio..")
         prepared_audio = self._prepare_audio(audio)
+
+        self._update_transcription_options(params)
 
         result = self.model.transcribe(
             prepared_audio,
             batch_size=params.batch_size,
             language=params.lang,
             task="translate" if params.is_translate else "transcribe",
-            beam_size=params.beam_size,
-            best_of=params.best_of,
-            patience=params.patience,
-            temperature=params.temperature,
-            condition_on_previous_text=params.condition_on_previous_text,
-            compression_ratio_threshold=params.compression_ratio_threshold,
-            no_speech_threshold=params.no_speech_threshold,
-            log_prob_threshold=params.log_prob_threshold,
-            suppress_blank=params.suppress_blank,
-            suppress_tokens=params.suppress_tokens,
-            initial_prompt=params.initial_prompt,
-            length_penalty=params.length_penalty,
-            repetition_penalty=params.repetition_penalty,
-            no_repeat_ngram_size=params.no_repeat_ngram_size,
-            prefix=params.prefix,
-            max_new_tokens=params.max_new_tokens,
-            hotwords=params.hotwords,
-            hallucination_silence_threshold=params.hallucination_silence_threshold,
+            chunk_size=params.chunk_length if params.chunk_length else 30,
         )
 
         segments_data = result.get("segments", [])
@@ -191,6 +182,61 @@ class WhisperXInference(BaseTranscriptionPipeline):
 
         raise ValueError("Unsupported audio input type for WhisperX inference")
 
+    def _update_transcription_options(self, params: WhisperParams) -> None:
+        if not hasattr(self.model, "options"):
+            logger.warning(
+                "WhisperX model does not expose transcription options; skipping override"
+            )
+            return
+
+        temperatures = (
+            (params.temperature,)
+            if isinstance(params.temperature, (int, float))
+            else params.temperature
+        )
+        option_overrides: Dict[
+            str,
+            Union[
+                bool,
+                float,
+                int,
+                Optional[str],
+                Optional[int],
+                Tuple[float, ...],
+                List[int],
+            ],
+        ] = {
+            "beam_size": params.beam_size,
+            "best_of": params.best_of,
+            "patience": params.patience,
+            "length_penalty": params.length_penalty,
+            "repetition_penalty": params.repetition_penalty,
+            "no_repeat_ngram_size": params.no_repeat_ngram_size,
+            "temperatures": temperatures,
+            "compression_ratio_threshold": params.compression_ratio_threshold,
+            "log_prob_threshold": params.log_prob_threshold,
+            "no_speech_threshold": params.no_speech_threshold,
+            "condition_on_previous_text": params.condition_on_previous_text,
+            "prompt_reset_on_temperature": params.prompt_reset_on_temperature,
+            "initial_prompt": params.initial_prompt,
+            "prefix": params.prefix,
+            "suppress_blank": params.suppress_blank,
+            "suppress_tokens": params.suppress_tokens,
+            "max_initial_timestamp": params.max_initial_timestamp,
+            "word_timestamps": params.word_timestamps,
+            "prepend_punctuations": params.prepend_punctuations,
+            "append_punctuations": params.append_punctuations,
+            "max_new_tokens": params.max_new_tokens,
+            "hallucination_silence_threshold": params.hallucination_silence_threshold,
+            "hotwords": params.hotwords or None,
+        }
+
+        try:
+            self.model.options = replace(self.model.options, **option_overrides)
+        except TypeError as error:
+            logger.error("Failed to update WhisperX transcription options: %s", error)
+            raise
+
     def _align_words(
         self,
         segments: List[dict],
@@ -207,7 +253,10 @@ class WhisperXInference(BaseTranscriptionPipeline):
                 "Alignment language could not be determined. Falling back to English aligner."
             )
 
-        if language_code != self.current_alignment_language or self.alignment_model is None:
+        if (
+            language_code != self.current_alignment_language
+            or self.alignment_model is None
+        ):
             progress(0, desc="Loading alignment model..")
             self.alignment_model, self.alignment_metadata = whisperx.load_align_model(
                 language_code=language_code,
