@@ -179,15 +179,16 @@ class App:
                                                             compute_type=self.whisper_inf.current_compute_type,
                                                             include_whisperx_controls=False)
             # Remove legacy alignment toggle; we replace it with the dedicated section below
-            def _pop_component(label: str) -> int:
+            def _pop_component(label: str) -> tuple[int, gr.components.Component | None]:
                 for idx, component in enumerate(list(whisper_inputs)):
                     if getattr(component, "label", None) == label:
                         whisper_inputs.pop(idx)
-                        return idx
-                return len(whisper_inputs)
+                        return idx, component
+                return len(whisper_inputs), None
 
-            alignment_index = _pop_component(_("Use WhisperX Alignment"))
-            confidence_index = _pop_component(_("Show Confidence Scores"))
+            alignment_index, _ = _pop_component(_("Use WhisperX Alignment"))
+            confidence_index, _ = _pop_component(_("Show Confidence Scores"))
+            confidence_threshold_index, _ = _pop_component(_("WhisperX Minimum Word Confidence"))
 
         with gr.Accordion(_("Background Music Remover Filter"), open=False):
             uvr_inputs = BGMSeparationParams.to_gradio_input(defaults=uvr_params,
@@ -260,13 +261,14 @@ class App:
                 interactive=True,
             )
 
-        whisper_inputs.insert(alignment_index, cb_whisperx_alignment)
-        whisper_inputs.insert(confidence_index, cb_confidence_scores)
-        offload_insert_idx = next(
-            (idx for idx, comp in enumerate(whisper_inputs) if getattr(comp, "label", None) == _("Offload sub model when finished")),
-            len(whisper_inputs)
-        )
-        whisper_inputs.insert(offload_insert_idx, sl_whisperx_confidence)
+        whisper_inserts = [
+            (alignment_index, cb_whisperx_alignment),
+            (confidence_threshold_index, sl_whisperx_confidence),
+            (confidence_index, cb_confidence_scores),
+        ]
+
+        for insert_idx, component in sorted(whisper_inserts, key=lambda item: item[0], reverse=True):
+            whisper_inputs.insert(insert_idx, component)
         if whisper_offload_component is not None:
             whisper_inputs.append(whisper_offload_component)
 
