@@ -581,11 +581,6 @@ class WhisperParams(BaseParams):
                 ),
                 info="Leverages WhisperX forced alignment for word-level timestamps",
             ),
-            gr.Checkbox(
-                label=_("Show Confidence Scores"),
-                value=defaults.get("show_confidence", cls.__fields__["show_confidence"].default),
-                info=_("Append confidence values to segment and word outputs"),
-            ),
             gr.Textbox(
                 label="Prepend Punctuations",
                 value=defaults.get("prepend_punctuations", cls.__fields__["prepend_punctuations"].default),
@@ -637,7 +632,23 @@ class WhisperParams(BaseParams):
                 value=defaults.get("batch_size", cls.__fields__["batch_size"].default),
                 precision=0,
                 info="Batch size for processing",
-            )
+            ),
+            gr.Slider(
+                minimum=0.0,
+                maximum=1.0,
+                step=0.01,
+                label=_("WhisperX Minimum Word Confidence"),
+                value=defaults.get(
+                    "whisperx_confidence_threshold",
+                    cls.__fields__["whisperx_confidence_threshold"].default,
+                ),
+                info=_("Discard aligned words below this WhisperX confidence score"),
+            ),
+            gr.Checkbox(
+                label=_("Show Confidence Scores"),
+                value=defaults.get("show_confidence", cls.__fields__["show_confidence"].default),
+                info=_("Append confidence values to segment and word outputs"),
+            ),
         ]
 
         insanely_fast_whisper_inputs = [
