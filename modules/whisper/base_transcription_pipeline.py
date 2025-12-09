@@ -70,6 +70,35 @@ class BaseTranscriptionPipeline(ABC):
         if self.cancel_event and self.cancel_event.is_set():
             raise gr.Error("Transcription cancelled")
 
+    @staticmethod
+    def _iter_file_paths(files: Optional[Union[List, Tuple, str]]):
+        """Yield normalized file paths while reflecting runtime list mutations.
+
+        When a mutable list is provided (for example, a gr.State value), this
+        generator keeps a reference to the same object so that files appended
+        after processing has started will be picked up automatically.
+        """
+
+        if not files:
+            return
+
+        if isinstance(files, str):
+            file_list = [files]
+        elif isinstance(files, list):
+            file_list = files
+        else:
+            file_list = list(files)
+
+        index = 0
+        while index < len(file_list):
+            file_entry = file_list[index]
+            if isinstance(file_entry, gr.utils.NamedString):
+                yield file_entry.name
+            else:
+                yield file_entry
+
+            index += 1
+
     @abstractmethod
     def transcribe(
                    audio: Union[str, BinaryIO, np.ndarray],
@@ -390,16 +419,12 @@ class BaseTranscriptionPipeline(ABC):
 
             if input_folder_path:
                 files = get_media_files(input_folder_path, include_sub_directory=include_subdirectory)
-            if isinstance(files, str):
-                files = [files]
-            if files and isinstance(files[0], gr.utils.NamedString):
-                files = [file.name for file in files]
 
             files_info = {}
             merged_segments: List[Segment] = []
             merged_file_name = "merged_subtitles"
             cumulative_offset = 0.0
-            for file in files:
+            for file in self._iter_file_paths(files):
                 self._check_cancelled()
                 transcribed_segments, time_for_task = self.run(
                     file,
