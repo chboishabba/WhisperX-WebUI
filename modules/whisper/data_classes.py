@@ -601,14 +601,20 @@ class WhisperParams(BaseParams):
                 label="Language Detection Threshold",
                 value=defaults.get("language_detection_threshold",
                                    GRADIO_NONE_NUMBER_MIN),
-                info="Threshold for language detection probability"
+                info="Threshold for language detection probability",
             ),
             gr.Number(
                 label="Language Detection Segments",
                 value=defaults.get("language_detection_segments",
                                    cls.__fields__["language_detection_segments"].default),
                 precision=0,
-                info="Number of segments for language detection"
+                info="Number of segments for language detection",
+            ),
+            gr.Number(
+                label="Batch Size",
+                value=defaults.get("batch_size", cls.__fields__["batch_size"].default),
+                precision=0,
+                info="Batch size for processing",
             )
         ]
 
@@ -621,7 +627,10 @@ class WhisperParams(BaseParams):
             )
         ]
 
-        if whisper_type != WhisperImpl.FASTER_WHISPER.value:
+        if whisper_type not in (
+            WhisperImpl.FASTER_WHISPER.value,
+            WhisperImpl.WHISPERX.value,
+        ):
             for input_component in faster_whisper_inputs:
                 input_component.visible = False
 
