@@ -674,24 +674,28 @@ class WhisperParams(BaseParams):
                 ]
             )
 
-        insanely_fast_whisper_inputs = [
-            gr.Number(
-                label="Batch Size",
-                value=defaults.get("batch_size", cls.__fields__["batch_size"].default),
-                precision=0,
-                info="Batch size for processing"
-            )
-        ]
+        insanely_fast_whisper_inputs: list[gr.components.base.FormComponent] = []
+
+        if whisper_type == WhisperImpl.INSANELY_FAST_WHISPER.value:
+            insanely_fast_whisper_inputs = [
+                gr.Number(
+                    label="Batch Size",
+                    value=defaults.get("batch_size", cls.__fields__["batch_size"].default),
+                    precision=0,
+                    info="Batch size for processing",
+                )
+            ]
+            faster_whisper_inputs = [
+                component
+                for component in faster_whisper_inputs
+                if getattr(component, "label", None) != "Batch Size"
+            ]
 
         if whisper_type not in (
             WhisperImpl.FASTER_WHISPER.value,
             WhisperImpl.WHISPERX.value,
         ):
             for input_component in faster_whisper_inputs:
-                input_component.visible = False
-
-        if whisper_type != WhisperImpl.INSANELY_FAST_WHISPER.value:
-            for input_component in insanely_fast_whisper_inputs:
                 input_component.visible = False
 
         inputs += faster_whisper_inputs + insanely_fast_whisper_inputs
