@@ -1,5 +1,6 @@
 # Adapted from https://github.com/m-bain/whisperX/blob/main/whisperx/diarize.py
 
+import logging
 import os
 from typing import Optional, Union
 
@@ -45,6 +46,8 @@ from modules.whisper.data_classes import *
 from modules.utils.paths import WHISPERX_MODELS_DIR
 from modules.diarize.audio_loader import load_audio, SAMPLE_RATE
 
+logger = logging.getLogger(__name__)
+
 
 class DiarizationPipeline:
     def __init__(
@@ -58,16 +61,15 @@ class DiarizationPipeline:
         cache_dir = cache_dir or os.path.join(WHISPERX_MODELS_DIR, "diarization")
         if isinstance(device, str):
             device = torch.device(device)
-        dtype = None
-        if compute_type == "float16":
-            dtype = torch.float16
-        elif compute_type == "bfloat16":
-            dtype = torch.bfloat16
-        elif compute_type == "float32":
-            dtype = torch.float32
         self.model = Pipeline.from_pretrained(
             model_name, use_auth_token=use_auth_token, cache_dir=cache_dir
-        ).to(device=device, dtype=dtype)
+        ).to(device=device)
+
+        if compute_type not in (None, "float32"):
+            logger.warning(
+                "Diarization pipeline does not support compute_type=%s; running with default precision.",
+                compute_type,
+            )
 
     def __call__(
         self, audio: Union[str, np.ndarray], min_speakers=None, max_speakers=None
