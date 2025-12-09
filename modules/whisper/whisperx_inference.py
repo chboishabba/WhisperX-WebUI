@@ -153,7 +153,7 @@ class WhisperXInference(BaseTranscriptionPipeline):
         self.current_model_size = model_size
         self.current_compute_type = compute_type
         self.model = whisperx.load_model(
-            model_size_or_path=model_size,
+            model_size,
             device=self.device,
             compute_type=compute_type,
             download_root=self.model_dir,
