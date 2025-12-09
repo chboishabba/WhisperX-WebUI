@@ -73,6 +73,7 @@ class WhisperXInference(BaseTranscriptionPipeline):
         result = self._transcribe_with_fallback(
             prepared_audio,
             params,
+            progress,
         )
 
         segments_data = result.get("segments", [])
@@ -133,37 +134,44 @@ class WhisperXInference(BaseTranscriptionPipeline):
         return segments_result, elapsed_time
 
     def _transcribe_with_fallback(
-        self, audio: np.ndarray, params: WhisperParams
+        self,
+        audio: np.ndarray,
+        params: WhisperParams,
+        progress: Optional[gr.Progress] = None,
     ) -> Dict[str, object]:
         chunk_size = params.chunk_length if params.chunk_length else 30
         task = "translate" if params.is_translate else "transcribe"
 
-        try:
-            return self.model.transcribe(
-                audio,
-                batch_size=params.batch_size,
-                language=params.lang,
-                task=task,
-                chunk_size=chunk_size,
-            )
-        except RuntimeError as error:
-            if self.device != "cuda" or "out of memory" not in str(error).lower():
-                raise
+        batch_size = params.batch_size
+        while batch_size >= 1:
+            try:
+                return self.model.transcribe(
+                    audio,
+                    batch_size=batch_size,
+                    language=params.lang,
+                    task=task,
+                    chunk_size=chunk_size,
+                )
+            except RuntimeError as error:
+                if self.device != "cuda" or "out of memory" not in str(error).lower():
+                    raise
 
-            logger.warning(
-                "CUDA OOM during WhisperX transcription; retrying with batch_size=1 "
-                "and smaller chunks."
-            )
-            torch.cuda.empty_cache()
+                next_batch_size = batch_size // 2
+                if next_batch_size < 1:
+                    logger.error(
+                        "CUDA OOM during WhisperX transcription even at batch_size=1"
+                    )
+                    raise
 
-            fallback_chunk = min(chunk_size, 15)
-            return self.model.transcribe(
-                audio,
-                batch_size=1,
-                language=params.lang,
-                task=task,
-                chunk_size=fallback_chunk,
-            )
+                retry_message = (
+                    "CUDA OOM during WhisperX transcription; retrying with batch_size="
+                    f"{next_batch_size}"
+                )
+                logger.warning(retry_message)
+                if progress is not None:
+                    progress(0, desc=retry_message)
+                torch.cuda.empty_cache()
+                batch_size = next_batch_size
 
     def update_model(
         self,
