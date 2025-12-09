@@ -482,8 +482,13 @@ def get_writer(
 
 
 def generate_file(
-    output_format: str, output_dir: str, result: Union[dict, List[Segment]], output_file_name: str,
-    add_timestamp: bool = True, **kwargs
+    output_format: str,
+    output_dir: str,
+    result: Union[dict, List[Segment]],
+    output_file_name: str,
+    add_timestamp: bool = True,
+    options: Optional[dict] = None,
+    **kwargs,
 ) -> Tuple[str, str]:
     output_format = output_format.strip().lower().replace(".", "")
     output_format = "vtt" if output_format == "webvtt" else output_format
@@ -498,7 +503,12 @@ def generate_file(
     if isinstance(file_writer, WriteLRC) and kwargs.get("highlight_words", False):
         kwargs["highlight_words"], kwargs["align_lrc_words"] = False, True
 
-    file_writer(result=result, output_file_name=output_file_name, **kwargs)
+    file_writer(
+        result=result,
+        output_file_name=output_file_name,
+        options=options,
+        **kwargs,
+    )
     content = read_file(file_path)
     return content, file_path
 
