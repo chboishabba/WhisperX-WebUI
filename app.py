@@ -304,7 +304,7 @@ class App:
         self._prefix_labels(uvr_inputs, _("BGM Separation"))
 
         pipeline_inputs = [dd_model, dd_lang, cb_translate] + whisper_inputs + vad_inputs + diarization_inputs + uvr_inputs
-        self.pipeline_param_names = self._generate_param_names(pipeline_inputs)
+        self.pipeline_param_names, self.pipeline_param_defaults = self._generate_param_names(pipeline_inputs)
 
         return (
             pipeline_inputs,
@@ -313,9 +313,10 @@ class App:
         )
 
     @staticmethod
-    def _generate_param_names(components: list[gr.components.Component]) -> list[str]:
-        """Create unique, snake_case parameter names from component labels."""
+    def _generate_param_names(self, components: list[gr.components.Component]) -> tuple[list[str], list]:
+        """Create unique, snake_case parameter names and capture defaults from component values."""
         names: list[str] = []
+        defaults: list = []
         seen: set[str] = set()
         for comp in components:
             raw_label = getattr(comp, "label", "") or "param"
@@ -327,7 +328,25 @@ class App:
                 counter += 1
             seen.add(candidate)
             names.append(candidate)
-        return names
+            defaults.append(getattr(comp, "value", None))
+        return names, defaults
+
+    @staticmethod
+    def _build_signature_params(names: list[str], defaults: list) -> list[inspect.Parameter]:
+        params = []
+        for name, default in zip(names, defaults):
+            # If no default was set, keep the parameter required
+            if default is None:
+                params.append(inspect.Parameter(name, inspect.Parameter.POSITIONAL_OR_KEYWORD))
+            else:
+                params.append(
+                    inspect.Parameter(
+                        name,
+                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                        default=default,
+                    )
+                )
+        return params
 
     def _wrap_transcribe_file(self):
         """Provide a wrapper with explicit signature so Gradio names API params nicely."""
@@ -340,7 +359,17 @@ class App:
             "file_format",
             "add_timestamp",
         ]
+        base_defaults = [
+            inspect.Parameter.empty,  # files required
+            "",  # input_folder_path default
+            False,
+            True,
+            True,
+            "SRT",
+            False,
+        ]
         param_names = base_param_names + getattr(self, "pipeline_param_names", [])
+        param_defaults = base_defaults + getattr(self, "pipeline_param_defaults", [])
 
         def handler(*args):
             files, input_folder_path, include_subdirectory, save_same_dir, process_separately, file_format, add_timestamp, *pipeline_values = args
@@ -356,10 +385,7 @@ class App:
             )
 
         handler.__signature__ = inspect.Signature(
-            parameters=[
-                inspect.Parameter(name, inspect.Parameter.POSITIONAL_OR_KEYWORD)
-                for name in param_names
-            ]
+            parameters=self._build_signature_params(param_names, param_defaults)
         )
         return handler
 
@@ -369,7 +395,13 @@ class App:
             "file_format",
             "add_timestamp",
         ]
+        base_defaults = [
+            inspect.Parameter.empty,  # youtube_link required
+            "SRT",
+            False,
+        ]
         param_names = base_param_names + getattr(self, "pipeline_param_names", [])
+        param_defaults = base_defaults + getattr(self, "pipeline_param_defaults", [])
 
         def handler(*args):
             youtube_link, file_format, add_timestamp, *pipeline_values = args
@@ -381,10 +413,7 @@ class App:
             )
 
         handler.__signature__ = inspect.Signature(
-            parameters=[
-                inspect.Parameter(name, inspect.Parameter.POSITIONAL_OR_KEYWORD)
-                for name in param_names
-            ]
+            parameters=self._build_signature_params(param_names, param_defaults)
         )
         return handler
 
@@ -394,7 +423,13 @@ class App:
             "file_format",
             "add_timestamp",
         ]
+        base_defaults = [
+            inspect.Parameter.empty,  # mic_audio required
+            "SRT",
+            False,
+        ]
         param_names = base_param_names + getattr(self, "pipeline_param_names", [])
+        param_defaults = base_defaults + getattr(self, "pipeline_param_defaults", [])
 
         def handler(*args):
             mic_audio, file_format, add_timestamp, *pipeline_values = args
@@ -406,10 +441,7 @@ class App:
             )
 
         handler.__signature__ = inspect.Signature(
-            parameters=[
-                inspect.Parameter(name, inspect.Parameter.POSITIONAL_OR_KEYWORD)
-                for name in param_names
-            ]
+            parameters=self._build_signature_params(param_names, param_defaults)
         )
         return handler
 
