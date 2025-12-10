@@ -84,6 +84,13 @@ class App:
     def _pipeline_from_values(*pipeline_values):
         return TranscriptionPipelineParams.from_list(list(pipeline_values))
 
+    @staticmethod
+    def _prefix_labels(components: list[gr.components.Component], prefix: str) -> None:
+        """Prefix component labels to keep API parameter names human readable and unique."""
+        for component in components:
+            if hasattr(component, "label") and getattr(component, "label"):
+                component.label = f"{prefix}: {component.label}"
+
     def _reset_cancellation(self):
         if self.cancel_event:
             self.cancel_event.clear()
@@ -158,15 +165,29 @@ class App:
         uvr_params = self.default_params["bgm_separation"]
 
         with gr.Row():
-            dd_model = gr.Dropdown(choices=self.whisper_inf.available_models, value=whisper_params["model_size"],
-                                   label=_("Model"), allow_custom_value=True)
-            dd_lang = gr.Dropdown(choices=self.whisper_inf.available_langs + [AUTOMATIC_DETECTION],
+            dd_model = gr.Dropdown(
+                choices=self.whisper_inf.available_models,
+                value=whisper_params["model_size"],
+                label=_("Whisper Model"),
+                allow_custom_value=True,
+            )
+            dd_lang = gr.Dropdown(
+                choices=self.whisper_inf.available_langs + [AUTOMATIC_DETECTION],
                                   value=AUTOMATIC_DETECTION if whisper_params["lang"] == AUTOMATIC_DETECTION.unwrap()
-                                  else whisper_params["lang"], label=_("Language"))
-            dd_file_format = gr.Dropdown(choices=["SRT", "WebVTT", "txt", "LRC"], value=whisper_params["file_format"], label=_("File Format"))
+                                  else whisper_params["lang"],
+                label=_("Whisper Language"),
+            )
+            dd_file_format = gr.Dropdown(
+                choices=["SRT", "WebVTT", "txt", "LRC"],
+                value=whisper_params["file_format"],
+                label=_("File Format"),
+            )
         with gr.Row():
-            cb_translate = gr.Checkbox(value=whisper_params["is_translate"], label=_("Translate to English?"),
-                                       interactive=True)
+            cb_translate = gr.Checkbox(
+                value=whisper_params["is_translate"],
+                label=_("Translate to English? (Whisper)"),
+                interactive=True,
+            )
         with gr.Row():
             cb_timestamp = gr.Checkbox(value=whisper_params["add_timestamp"],
                                        label=_("Add a timestamp to the end of the filename"),
@@ -276,6 +297,11 @@ class App:
         if diarization_offload_component is not None:
             diarization_inputs.append(diarization_offload_component)
 
+        self._prefix_labels(whisper_inputs, _("Whisper"))
+        self._prefix_labels(vad_inputs, _("VAD"))
+        self._prefix_labels(diarization_inputs, _("Diarization"))
+        self._prefix_labels(uvr_inputs, _("BGM Separation"))
+
         pipeline_inputs = [dd_model, dd_lang, cb_translate] + whisper_inputs + vad_inputs + diarization_inputs + uvr_inputs
 
         return (
@@ -347,7 +373,7 @@ class App:
                             fn=self._transcribe_file,
                             inputs=params,
                             outputs=[tb_indicator, files_subtitles],
-                            api_name="_transcribe",
+                            api_name="_transcribe_file",
                         )
                         transcription_events.append(file_run_event)
                         btn_cancel_file.click(
@@ -386,7 +412,7 @@ class App:
                             fn=self._transcribe_youtube,
                             inputs=params + pipeline_params,
                             outputs=[tb_indicator, files_subtitles],
-                            api_name="transcribe_youtube",
+                            api_name="_transcribe_youtube",
                         )
                         transcription_events.append(youtube_run_event)
                         btn_cancel_youtube.click(
@@ -428,7 +454,7 @@ class App:
                             fn=self._transcribe_mic,
                             inputs=params + pipeline_params,
                             outputs=[tb_indicator, files_subtitles],
-                            api_name="transcribe_mic",
+                            api_name="_transcribe_mic",
                         )
                         transcription_events.append(mic_run_event)
                         btn_cancel_mic.click(
