@@ -5,6 +5,7 @@ import threading
 import gradio as gr
 from gradio_i18n import Translate, gettext as _
 import yaml
+import re
 
 from modules.utils.paths import (FASTER_WHISPER_MODELS_DIR, DIARIZATION_MODELS_DIR, OUTPUT_DIR, WHISPER_MODELS_DIR,
                                  INSANELY_FAST_WHISPER_MODELS_DIR, NLLB_MODELS_DIR, WHISPERX_MODELS_DIR,
@@ -303,12 +304,114 @@ class App:
         self._prefix_labels(uvr_inputs, _("BGM Separation"))
 
         pipeline_inputs = [dd_model, dd_lang, cb_translate] + whisper_inputs + vad_inputs + diarization_inputs + uvr_inputs
+        self.pipeline_param_names = self._generate_param_names(pipeline_inputs)
 
         return (
             pipeline_inputs,
             dd_file_format,
             cb_timestamp
         )
+
+    @staticmethod
+    def _generate_param_names(components: list[gr.components.Component]) -> list[str]:
+        """Create unique, snake_case parameter names from component labels."""
+        names: list[str] = []
+        seen: set[str] = set()
+        for comp in components:
+            raw_label = getattr(comp, "label", "") or "param"
+            name = re.sub(r"[^0-9a-zA-Z]+", "_", str(raw_label)).strip("_").lower() or "param"
+            candidate = name
+            counter = 2
+            while candidate in seen:
+                candidate = f"{name}_{counter}"
+                counter += 1
+            seen.add(candidate)
+            names.append(candidate)
+        return names
+
+    def _wrap_transcribe_file(self):
+        """Provide a wrapper with explicit signature so Gradio names API params nicely."""
+        base_param_names = [
+            "files",
+            "input_folder_path",
+            "include_subdirectory",
+            "save_same_dir",
+            "process_separately",
+            "file_format",
+            "add_timestamp",
+        ]
+        param_names = base_param_names + getattr(self, "pipeline_param_names", [])
+
+        def handler(*args):
+            files, input_folder_path, include_subdirectory, save_same_dir, process_separately, file_format, add_timestamp, *pipeline_values = args
+            return self._transcribe_file(
+                files,
+                input_folder_path,
+                include_subdirectory,
+                save_same_dir,
+                process_separately,
+                file_format,
+                add_timestamp,
+                *pipeline_values,
+            )
+
+        handler.__signature__ = inspect.Signature(
+            parameters=[
+                inspect.Parameter(name, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+                for name in param_names
+            ]
+        )
+        return handler
+
+    def _wrap_transcribe_youtube(self):
+        base_param_names = [
+            "youtube_link",
+            "file_format",
+            "add_timestamp",
+        ]
+        param_names = base_param_names + getattr(self, "pipeline_param_names", [])
+
+        def handler(*args):
+            youtube_link, file_format, add_timestamp, *pipeline_values = args
+            return self._transcribe_youtube(
+                youtube_link,
+                file_format,
+                add_timestamp,
+                *pipeline_values,
+            )
+
+        handler.__signature__ = inspect.Signature(
+            parameters=[
+                inspect.Parameter(name, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+                for name in param_names
+            ]
+        )
+        return handler
+
+    def _wrap_transcribe_mic(self):
+        base_param_names = [
+            "mic_audio",
+            "file_format",
+            "add_timestamp",
+        ]
+        param_names = base_param_names + getattr(self, "pipeline_param_names", [])
+
+        def handler(*args):
+            mic_audio, file_format, add_timestamp, *pipeline_values = args
+            return self._transcribe_mic(
+                mic_audio,
+                file_format,
+                add_timestamp,
+                *pipeline_values,
+            )
+
+        handler.__signature__ = inspect.Signature(
+            parameters=[
+                inspect.Parameter(name, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+                for name in param_names
+            ]
+        )
+        return handler
 
     def launch(self):
         translation_params = self.default_params["translation"]
@@ -370,7 +473,7 @@ class App:
                                   dd_file_format, cb_timestamp]
                         params = params + pipeline_params
                         file_run_event = btn_run.click(
-                            fn=self._transcribe_file,
+                            fn=self._wrap_transcribe_file(),
                             inputs=params,
                             outputs=[tb_indicator, files_subtitles],
                             api_name="_transcribe_file",
@@ -409,7 +512,7 @@ class App:
                         params = [tb_youtubelink, dd_file_format, cb_timestamp]
 
                         youtube_run_event = btn_run.click(
-                            fn=self._transcribe_youtube,
+                            fn=self._wrap_transcribe_youtube(),
                             inputs=params + pipeline_params,
                             outputs=[tb_indicator, files_subtitles],
                             api_name="_transcribe_youtube",
@@ -451,7 +554,7 @@ class App:
                         params = [mic_input, dd_file_format, cb_timestamp]
 
                         mic_run_event = btn_run.click(
-                            fn=self._transcribe_mic,
+                            fn=self._wrap_transcribe_mic(),
                             inputs=params + pipeline_params,
                             outputs=[tb_indicator, files_subtitles],
                             api_name="_transcribe_mic",
