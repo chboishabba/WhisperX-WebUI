@@ -333,18 +333,22 @@ class App:
     @staticmethod
     def _build_signature_params(names: list[str], defaults: list) -> list[inspect.Parameter]:
         params = []
+        seen_default = False
         for name, default in zip(names, defaults):
             # If no default was set, keep the parameter required
-            if default is None:
-                params.append(inspect.Parameter(name, inspect.Parameter.POSITIONAL_OR_KEYWORD))
+            if default is not None and default is not inspect.Parameter.empty:
+                param_default = default
+                seen_default = True
             else:
-                params.append(
-                    inspect.Parameter(
-                        name,
-                        inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                        default=default,
-                    )
+                param_default = None if seen_default else inspect.Parameter.empty
+
+            params.append(
+                inspect.Parameter(
+                    name,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=param_default,
                 )
+            )
         return params
 
     def _wrap_transcribe_file(self):
