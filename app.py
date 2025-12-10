@@ -312,7 +312,6 @@ class App:
             cb_timestamp
         )
 
-    @staticmethod
     def _generate_param_names(self, components: list[gr.components.Component]) -> tuple[list[str], list]:
         """Create unique, snake_case parameter names and capture defaults from component values."""
         names: list[str] = []
