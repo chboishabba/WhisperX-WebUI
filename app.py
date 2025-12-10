@@ -347,6 +347,7 @@ class App:
                             fn=self._transcribe_file,
                             inputs=params,
                             outputs=[tb_indicator, files_subtitles],
+                            api_name="_transcribe",
                         )
                         transcription_events.append(file_run_event)
                         btn_cancel_file.click(
@@ -385,6 +386,7 @@ class App:
                             fn=self._transcribe_youtube,
                             inputs=params + pipeline_params,
                             outputs=[tb_indicator, files_subtitles],
+                            api_name="transcribe_youtube",
                         )
                         transcription_events.append(youtube_run_event)
                         btn_cancel_youtube.click(
@@ -426,6 +428,7 @@ class App:
                             fn=self._transcribe_mic,
                             inputs=params + pipeline_params,
                             outputs=[tb_indicator, files_subtitles],
+                            api_name="transcribe_mic",
                         )
                         transcription_events.append(mic_run_event)
                         btn_cancel_mic.click(
@@ -477,7 +480,8 @@ class App:
                         btn_run.click(fn=self.deepl_api.translate_deepl,
                                       inputs=[tb_api_key, file_subs, dd_source_lang, dd_target_lang,
                                               cb_is_pro, cb_timestamp],
-                                      outputs=[tb_indicator, files_subtitles])
+                                      outputs=[tb_indicator, files_subtitles],
+                                      api_name="translate_deepl")
 
                         btn_openfolder.click(
                             fn=lambda: self.open_folder(os.path.join(self.args.output_dir, "translations")),
@@ -513,7 +517,8 @@ class App:
                         btn_run.click(fn=self.nllb_inf.translate_file,
                                       inputs=[file_subs, dd_model_size, dd_source_lang, dd_target_lang,
                                               nb_max_length, cb_timestamp],
-                                      outputs=[tb_indicator, files_subtitles])
+                                      outputs=[tb_indicator, files_subtitles],
+                                      api_name="translate_nllb")
 
                         btn_openfolder.click(
                             fn=lambda: self.open_folder(os.path.join(self.args.output_dir, "translations")),
@@ -542,7 +547,8 @@ class App:
                         btn_run.click(fn=self.whisper_inf.music_separator.separate_files,
                                       inputs=[files_audio, dd_uvr_model_size, dd_uvr_device, nb_uvr_segment_size,
                                               cb_uvr_save_file],
-                                      outputs=[ad_instrumental, ad_vocals])
+                                      outputs=[ad_instrumental, ad_vocals],
+                                      api_name="separate_bgm")
                         btn_open_instrumental_folder.click(inputs=None,
                                                            outputs=None,
                                                            fn=lambda: self.open_folder(os.path.join(
@@ -593,7 +599,7 @@ parser.add_argument('--username', type=str, default=None, help='Gradio authentic
 parser.add_argument('--password', type=str, default=None, help='Gradio authentication password')
 parser.add_argument('--theme', type=str, default=None, help='Gradio Blocks theme')
 parser.add_argument('--colab', type=str2bool, default=False, nargs='?', const=True, help='Is colab user or not')
-parser.add_argument('--api_open', type=str2bool, default=False, nargs='?', const=True,
+parser.add_argument('--api_open', type=str2bool, default=True, nargs='?', const=True,
                     help='Enable api or not in Gradio')
 parser.add_argument('--allowed_paths', type=str, default=None, help='Gradio allowed paths')
 parser.add_argument('--inbrowser', type=str2bool, default=True, nargs='?', const=True,
