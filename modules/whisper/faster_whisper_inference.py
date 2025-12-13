@@ -172,8 +172,34 @@ class FasterWhisperInference(BaseTranscriptionPipeline):
         ----------
         Name list of models
         """
-        model_paths = {model:model for model in faster_whisper.available_models()}
+        default_models = [
+            "auto",
+            "tiny-int8",
+            "tiny",
+            "tiny.en",
+            "base-int8",
+            "base",
+            "base.en",
+            "small-int8",
+            "distil-small.en",
+            "small",
+            "small.en",
+            "medium-int8",
+            "distil-medium.en",
+            "medium",
+            "medium.en",
+            "large",
+            "large-v1",
+            "distil-large-v2",
+            "large-v2",
+            "distil-large-v3",
+            "large-v3",
+            "turbo",
+        ]
+
+        model_paths = {model: self._get_repo_id(model) for model in default_models}
         faster_whisper_prefix = "models--Systran--faster-whisper-"
+        distil_whisper_prefix = "models--distil-whisper--"
 
         existing_models = os.listdir(self.model_dir)
         wrong_dirs = [".locks", "faster_whisper_models_will_be_saved_here"]
@@ -182,10 +208,20 @@ class FasterWhisperInference(BaseTranscriptionPipeline):
         for model_name in existing_models:
             if faster_whisper_prefix in model_name:
                 model_name = model_name[len(faster_whisper_prefix):]
+            elif model_name.startswith(distil_whisper_prefix):
+                model_name = model_name[len(distil_whisper_prefix):]
 
             if model_name not in whisper.available_models():
                 model_paths[model_name] = os.path.join(self.model_dir, model_name)
         return model_paths
+
+    @staticmethod
+    def _get_repo_id(model_name: str) -> str:
+        if model_name == "auto":
+            return "turbo" if torch.cuda.is_available() else "distil-small.en"
+        if model_name.startswith("distil-"):
+            return f"distil-whisper/{model_name}"
+        return f"Systran/faster-whisper-{model_name}" if "-int8" in model_name or model_name == "turbo" else model_name
 
     @staticmethod
     def get_device():
