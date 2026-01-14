@@ -14,6 +14,7 @@ dotenv
 torch
 # torchaudio 2.8+ removed AudioMetaData which our diarization pipeline imports
 torchaudio
+sounddevice
 openai-whisper
 faster-whisper
 ctranslate2
@@ -30,4 +31,3 @@ jiwer
 onnxruntime-gpu
 git+https://github.com/jhj0517/ultimatevocalremover_api.git
 git+https://github.com/jhj0517/pyrubberband.git
-

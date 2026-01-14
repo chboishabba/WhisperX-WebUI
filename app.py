@@ -17,6 +17,11 @@ from modules.ui.htmls import *
 from modules.utils.cli_manager import str2bool
 from modules.utils.youtube_manager import get_ytmetas
 from modules.translation.deepl_api import DeepLAPI
+from modules.streaming.live_transcription import (
+    LiveTranscriptionError,
+    LiveTranscriptionSession,
+    list_audio_devices,
+)
 from modules.whisper.data_classes import *
 from modules.utils.logger import get_logger
 
@@ -50,6 +55,11 @@ class App:
         )
         self.i18n = load_yaml(I18N_YAML_PATH)
         self.default_params = load_yaml(DEFAULT_PARAMETERS_CONFIG_PATH)
+        self.live_session = None
+        self._live_session_lock = threading.Lock()
+        self.live_device_map: dict[str, int] = {}
+        self.live_device_choices = self._build_live_device_choices()
+        self.live_streaming_available = bool(self.live_device_map)
         logger.info(f"Use \"{self.args.whisper_type}\" implementation\n"
                     f"Device \"{self.whisper_inf.device}\" is detected")
 
@@ -158,6 +168,26 @@ class App:
                 except Exception:
                     logger.warning("Failed to build theme '%s', using raw value", theme_arg, exc_info=True)
         return theme_arg
+
+    def _build_live_device_choices(self) -> list[str]:
+        """Collect sounddevice devices so the live tab can show meaningful labels."""
+        try:
+            devices = list_audio_devices()
+        except LiveTranscriptionError as exc:
+            logger.warning("Live audio capture disabled: %s", exc)
+            return [_("No audio capture devices detected")]
+
+        choices = []
+        for device in devices:
+            if device.max_input_channels > 0 or device.max_output_channels > 0:
+                label = device.label
+                choices.append(label)
+                self.live_device_map[label] = device.index
+
+        if not choices:
+            return [_("No audio capture devices detected")]
+
+        return choices
 
     def create_pipeline_inputs(self):
         whisper_params = self.default_params["whisper"]
@@ -448,6 +478,82 @@ class App:
         )
         return handler
 
+    def _start_live_transcription(
+            self,
+            device_label,
+            chunk_seconds,
+            loopback,
+            file_format,
+            add_timestamp,
+            *pipeline_values,
+    ):
+        if not self.live_streaming_available:
+            return (_("Live transcription is unavailable because no audio device was detected."), "",
+                    gr.Files.update(value=[]))
+
+        with self._live_session_lock:
+            if self.live_session and self.live_session.is_active():
+                return (_("Live transcription is already running."), self.live_session.get_transcript_text(),
+                        gr.Files.update(value=[]))
+
+        device_index = self.live_device_map.get(device_label)
+        if device_index is None:
+            return (_("Please select a valid audio device."), "", gr.Files.update(value=[]))
+
+        pipeline_params = self._pipeline_from_values(*pipeline_values)
+        chunk_seconds = float(chunk_seconds or 8.0)
+        chunk_seconds = max(1.0, chunk_seconds)
+
+        session = LiveTranscriptionSession(
+            pipeline=self.whisper_inf,
+            pipeline_params=pipeline_params,
+            chunk_seconds=chunk_seconds,
+            sample_rate=16000,
+            device_index=device_index,
+            loopback=bool(loopback),
+            file_format=file_format,
+            add_timestamp=bool(add_timestamp),
+        )
+
+        try:
+            session.start()
+        except LiveTranscriptionError as exc:
+            return (str(exc), "", gr.Files.update(value=[]))
+
+        with self._live_session_lock:
+            self.live_session = session
+
+        status = _("Live transcription started ({device}).").format(device=device_label)
+        return status, "", gr.Files.update(value=[])
+
+    def _stop_live_transcription(self):
+        with self._live_session_lock:
+            session = self.live_session
+            self.live_session = None
+
+        if not session or not session.is_active():
+            return (_("Live transcription is not running."), "", gr.Files.update(value=[]))
+
+        try:
+            _, path = session.stop()
+            status = _("Live transcription stopped.")
+        except LiveTranscriptionError as exc:
+            status = str(exc)
+            path = None
+
+        transcript = session.get_transcript_text()
+        files_update = gr.Files.update(value=[path]) if path else gr.Files.update(value=[])
+        return status, transcript, files_update
+
+    def _poll_live_transcription(self):
+        with self._live_session_lock:
+            session = self.live_session
+
+        if not session or not session.is_active():
+            return "", _("Idle")
+
+        return session.get_transcript_text(), session.get_status()
+
     def launch(self):
         translation_params = self.default_params["translation"]
         deepl_params = translation_params["deepl"]
@@ -603,6 +709,61 @@ class App:
                         )
                         cancel_all_buttons.append((btn_cancel_all_mic, tb_indicator))
                         btn_openfolder.click(fn=lambda: self.open_folder("outputs"), inputs=None, outputs=None)
+
+                    with gr.TabItem(_("Live")):  # tab5
+                        with gr.Row():
+                            dd_live_device = gr.Dropdown(
+                                choices=self.live_device_choices,
+                                value=self.live_device_choices[0] if self.live_device_choices else _("No audio capture devices detected"),
+                                label=_("Audio Device"),
+                                info=_("Select a microphone or loopback device for live capture."),
+                            )
+                            cb_loopback = gr.Checkbox(
+                                label=_("Capture system output (loopback, Windows)"),
+                                value=False,
+                                info=_("Enable this to grab the active speaker mix when the host API supports loopback."),
+                            )
+                        with gr.Row():
+                            nb_chunk_seconds = gr.Number(
+                                label=_("Chunk duration (seconds)"),
+                                value=8.0,
+                                precision=1,
+                            )
+                        live_params, live_dd_file_format, live_cb_timestamp = self.create_pipeline_inputs()
+                        with gr.Row():
+                            btn_live_start = gr.Button(
+                                _("Start Live Transcription"), variant="primary",
+                                interactive=self.live_streaming_available
+                            )
+                            btn_live_stop = gr.Button(
+                                _("Stop Live Transcription"), variant="secondary",
+                                interactive=self.live_streaming_available
+                            )
+                        with gr.Row():
+                            tb_live_status = gr.Textbox(label=_("Live Status"), value=_("Idle"), interactive=False)
+                            tb_live_transcript = gr.Textbox(label=_("Live Transcript"), interactive=False, max_lines=20)
+                            files_live = gr.Files(label=_("Live Transcript Files"), interactive=False)
+
+                        live_inputs = [dd_live_device, nb_chunk_seconds, cb_loopback, live_dd_file_format, live_cb_timestamp] + live_params
+                        btn_live_start.click(
+                            fn=self._start_live_transcription,
+                            inputs=live_inputs,
+                            outputs=[tb_live_status, tb_live_transcript, files_live],
+                            api_name="_start_live_transcription",
+                        )
+                        btn_live_stop.click(
+                            fn=self._stop_live_transcription,
+                            inputs=None,
+                            outputs=[tb_live_status, tb_live_transcript, files_live],
+                            api_name="_stop_live_transcription",
+                        )
+
+                        live_timer = gr.Timer(interval=1.0)
+                        live_timer.tick(
+                            fn=self._poll_live_transcription,
+                            inputs=[],
+                            outputs=[tb_live_transcript, tb_live_status],
+                        )
 
                     for cancel_button, indicator in cancel_all_buttons:
                         cancel_button.click(

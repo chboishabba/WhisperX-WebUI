@@ -18,6 +18,7 @@ If you wish to try this on Colab, you can do it in [here](https://colab.research
   - Files
   - Youtube
   - Microphone
+  - Live microphone or system-loopback capture with incremental transcripts
 - Currently supported subtitle formats : 
   - SRT
   - WebVTT
@@ -37,6 +38,16 @@ If you wish to try this on Colab, you can do it in [here](https://colab.research
 
 ### Pipeline Diagram
 ![Transcription Pipeline](https://github.com/user-attachments/assets/1d8c63ac-72a4-4a0b-9db0-e03695dcf088)
+
+## Project Layout
+- `app.py` boots the Gradio WebUI and wires UI callbacks to the feature modules.
+- `modules/` holds implementation details (transcription, diarization, translation, UVR/VAD, UI helpers, and utilities).
+- `backend/` ships the FastAPI service, routers, configs, and API tests.
+- `configs/` contains default runtime parameters and language packs.
+- `models/` caches Whisper, WhisperX diarization, NLLB, and UVR assets.
+- `outputs/` stores generated subtitles, diarization tracks, and other artifacts (do not commit).
+- `tests/` houses UI/pipeline tests that mirror the modules they exercise.
+- `scripts/` contains helper tooling such as the OpenAI Whisper installer.
 
 # Installation and Running
 
@@ -101,6 +112,39 @@ git clone https://github.com/chboishabba/WhisperX-WebUI.git
 
 And you can also run the project with command line arguments if you like to, see [wiki](https://github.com/chboishabba/WhisperX-WebUI/wiki/Command-Line-Arguments) for a guide to arguments.
 
+### Entry points & scripts
+
+- `start-webui.sh` / `start-webui.bat` activates the venv and forwards any CLI args to `app.py`.
+- `user-start-webui.bat` is a Windows-friendly way to set common CLI args before calling `start-webui.bat`.
+- `Install.sh` / `Install.bat` creates a `venv`, installs the patched OpenAI Whisper dependency via `scripts/install_openai_whisper.py`, and then installs `requirements.txt`.
+- `scripts/install_openai_whisper.py` clones `openai/whisper` and installs it without pulling extra dependencies.
+
+### Common CLI flags
+
+You can pass CLI flags directly (Linux/macOS) or via `user-start-webui.bat` (Windows). Common flags include:
+
+- `--server_name` / `--server_port`
+- `--username` / `--password`
+- `--share` / `--theme` / `--api_open`
+- `--whisper_type`
+- `--whisper_model_dir` / `--faster_whisper_model_dir` / `--insanely_fast_whisper_model_dir`
+- `--diarization_model_dir`
+- `--disable_faster_whisper`
+
+For the full list, run `python app.py --help` or review the wiki.
+
+### Live Transcription
+
+The **Live** tab streams audio directly from your microphone or any loopback-capable output device. This mode depends on the `sounddevice` dependency (which bundles PortAudio), so make sure your platform can install the library (`libportaudio-dev` on Ubuntu/Debian, vcpkg or prebuilt wheels on Windows/macOS). Once the prerequisites are in place:
+
+1. Open the **Live** tab in Whisper-WebUI.
+2. Select the desired audio device from the dropdown (microphones, USB headsets, or output devices that expose loopback channels).
+3. Toggle **Capture system output** to pick up everything playing through the selected output device (the WASAPI host on Windows exposes loopback devices; other hosts may also support it).
+4. Adjust the chunk duration if you need faster updates, then press **Start Live Transcription**.
+5. Watch the incremental transcript appear in the textbox. Press **Stop Live Transcription** to flush the remaining data and download the generated subtitle file.
+
+Avoid launching large batch transcriptions while a live session is running so the shared Whisper backend is not taxed by multiple jobs at once.
+
 ### Dependency notes
 
 - `torchaudio` is pinned to 2.7.1 in [`requirements.txt`](./requirements.txt). Releases starting with 2.8 removed the `AudioMetaData` helper that our diarization pipeline imports, which triggers an `AttributeError` during transcription/diarization runs. Upgrade deliberately once the codebase stops relying on that class (or after adding a compatibility shim).
@@ -132,6 +176,13 @@ For the backend service, add the same token to `backend/configs/.env` (see the b
 
 - **Word alignment:** Open the **Advanced Parameters** accordion and enable **Word Timestamps**. Word-level timestamps will be exported to SRT/WebVTT and highlighted in the UI.
 - **Speaker diarization:** Expand the **Diarization** accordion, enable diarization, and choose the device (GPU recommended). If you supplied `HF_TOKEN`, the WebUI will download and cache the pyannote pipeline automatically.
+
+## Configuration & outputs
+
+- `configs/default_parameters.yaml` holds the default UI/pipeline parameters.
+- `configs/translation.yaml` defines UI language packs.
+- `models/Whisper/` and `models/Diarization/` store downloaded model weights; ensure the runtime user can write to these directories.
+- `outputs/` is the default landing zone for generated subtitles, diarization CSVs, and other artifacts. Keep it out of version control.
 
 # VRAM Usages
 This project starts with [WhisperX](https://github.com/m-bain/whisperX) by default to enable alignment-friendly transcriptions.
@@ -165,8 +216,8 @@ If you're interested in deploying this app as a REST API, please check out [/bac
 - [x] Integrate with whisperX ( Only speaker diarization part )
 - [x] Add background music separation pre-processing with [UVR](https://github.com/Anjok07/ultimatevocalremovergui)  
 - [x] Add fast api script
-- [ ] Add CLI usages
-- [ ] Support real-time transcription for microphone
+- [x] Add CLI usages
+- [x] Support live transcription from microphone and system audio
 
 ### Translation 🌐
 Any PRs that translate the language into [translation.yaml](https://github.com/chboishabba/WhisperX-WebUI/blob/master/configs/translation.yaml) would be greatly appreciated!
