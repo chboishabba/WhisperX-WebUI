@@ -48,6 +48,8 @@ def list_audio_devices() -> List[AudioDeviceInfo]:
         import sounddevice as sd
     except ImportError as exc:
         raise LiveTranscriptionError("The sounddevice dependency is missing.") from exc
+    except OSError as exc:
+        raise LiveTranscriptionError("PortAudio library not found.") from exc
 
     try:
         host_apis = sd.query_hostapis()
