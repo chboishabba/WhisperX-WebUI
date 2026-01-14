@@ -10,8 +10,7 @@ RUN git fetch --all && git reset --hard origin/master
 # 3. Ensure the environment is correctly patched
 # Numba (pulled by Whisper) requires NumPy < 2.3.
 RUN apt-get update \
-    && apt-get -y --fix-broken install \
-    && apt-get install -y --no-install-recommends libportaudio2 \
+    && apt-get install -y --no-install-recommends --no-upgrade libportaudio2 python3-filelock || true \
     && rm -rf /var/lib/apt/lists/* \
     && /Whisper-WebUI/venv/bin/pip install "gradio>=5.0,<6.0" "numpy<2.3" "gradio-i18n" --upgrade --no-cache-dir
 
