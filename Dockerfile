@@ -1,7 +1,14 @@
 FROM chboi/gfx803_whisperx_webui:latest
+
+# 1. Set working directory
 WORKDIR /opt/whisperx_webui
-# 1. Update the code
-RUN git pull
-# 2. Install from requirements but FORCE a compatible Gradio version
-RUN /Whisper-WebUI/venv/bin/pip install -r requirements.txt
-RUN /Whisper-WebUI/venv/bin/pip install "gradio>=5.0,<6.0" "numpy>=2.0.2" --no-cache-dir
+
+# 2. Force-update the code to your latest GitHub fix
+# We use 'reset' to make sure no local container junk blocks the pull
+RUN git fetch --all && git reset --hard origin/master
+
+# 3. Ensure the environment is correctly patched
+RUN /Whisper-WebUI/venv/bin/pip install "gradio>=5.0,<6.0" "numpy>=2.0.2" "gradio-i18n" --upgrade --no-cache-dir
+
+# 4. Set the default startup command
+ENTRYPOINT ["/bin/bash", "-c", "source /Whisper-WebUI/venv/bin/activate && python app.py"]

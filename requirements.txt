@@ -12,6 +12,8 @@
 openai_whisper
 dotenv
 torch
+# Numba requires NumPy < 2.3; Whisper pulls numba for word timings.
+numpy<2.3
 # torchaudio 2.8+ removed AudioMetaData which our diarization pipeline imports
 torchaudio
 sounddevice
