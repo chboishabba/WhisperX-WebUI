@@ -15,4 +15,4 @@ RUN apt-get update \
     && /Whisper-WebUI/venv/bin/pip install "gradio>=5.0,<6.0" "numpy<2.3" "gradio-i18n" --upgrade --no-cache-dir
 
 # 4. Set the default startup command
-ENTRYPOINT ["/bin/bash", "-c", "if [ -d .git ]; then git pull --rebase --autostash || true; fi && source /Whisper-WebUI/venv/bin/activate && python -c \"import numpy as np, sys; major, minor = (int(p) for p in np.__version__.split('.')[:2]); sys.exit(0 if (major, minor) < (2, 3) else 1)\" || /Whisper-WebUI/venv/bin/pip install --force-reinstall \"numpy<2.3\" \"numba\" --no-cache-dir && python app.py"]
+ENTRYPOINT ["/bin/bash", "-c", "if [ -d .git ]; then git pull --rebase --autostash || true; fi && source /Whisper-WebUI/venv/bin/activate && python -c \"import numpy as np, sys; major, minor = (int(p) for p in np.__version__.split('.')[:2]); sys.exit(0 if (major, minor) < (2, 3) else 1)\" || /Whisper-WebUI/venv/bin/pip install --force-reinstall \"numpy<2.3\" \"numba\" --no-cache-dir && python app.py ${COMMANDLINE_ARGS}"]
