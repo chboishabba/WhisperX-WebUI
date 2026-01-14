@@ -758,9 +758,10 @@ class App:
                             api_name="_stop_live_transcription",
                         )
 
-                        live_timer = gr.Timer(interval=1.0)
+                        live_timer = gr.Timer()
                         live_timer.tick(
                             fn=self._poll_live_transcription,
+                            every=1.0,
                             inputs=[],
                             outputs=[tb_live_transcript, tb_live_status],
                         )
