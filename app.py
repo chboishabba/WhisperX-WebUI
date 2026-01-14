@@ -761,7 +761,6 @@ class App:
                         live_timer = gr.Timer()
                         live_timer.tick(
                             fn=self._poll_live_transcription,
-                            every=1.0,
                             inputs=[],
                             outputs=[tb_live_transcript, tb_live_status],
                         )
