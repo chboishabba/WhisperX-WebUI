@@ -8,7 +8,8 @@ WORKDIR /opt/whisperx_webui
 RUN git fetch --all && git reset --hard origin/master
 
 # 3. Ensure the environment is correctly patched
-RUN /Whisper-WebUI/venv/bin/pip install "gradio>=5.0,<6.0" "numpy>=2.0.2" "gradio-i18n" --upgrade --no-cache-dir
+# Numba (pulled by Whisper) requires NumPy < 2.3.
+RUN /Whisper-WebUI/venv/bin/pip install "gradio>=5.0,<6.0" "numpy<2.3" "gradio-i18n" --upgrade --no-cache-dir
 
 # 4. Set the default startup command
 ENTRYPOINT ["/bin/bash", "-c", "if [ -d .git ]; then git pull --rebase --autostash || true; fi && source /Whisper-WebUI/venv/bin/activate && python app.py"]
