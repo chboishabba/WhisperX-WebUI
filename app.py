@@ -204,7 +204,7 @@ class App:
             )
             dd_lang = gr.Dropdown(
                 choices=self.whisper_inf.available_langs + [AUTOMATIC_DETECTION],
-                                  value=AUTOMATIC_DETECTION if whisper_params["lang"] == AUTOMATIC_DETECTION.unwrap()
+                                  value=AUTOMATIC_DETECTION if whisper_params["lang"] == AUTOMATIC_DETECTION
                                   else whisper_params["lang"],
                 label=_("Whisper Language"),
             )
@@ -784,7 +784,7 @@ class App:
                                                         value=deepl_params["api_key"])
                             with gr.Row():
                                 dd_source_lang = gr.Dropdown(label=_("Source Language"),
-                                                             value=AUTOMATIC_DETECTION if deepl_params["source_lang"] == AUTOMATIC_DETECTION.unwrap()
+                                                             value=AUTOMATIC_DETECTION if deepl_params["source_lang"] == AUTOMATIC_DETECTION
                                                              else deepl_params["source_lang"],
                                                              choices=list(self.deepl_api.available_source_langs.keys()))
                                 dd_target_lang = gr.Dropdown(label=_("Target Language"),

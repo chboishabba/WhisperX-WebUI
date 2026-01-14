@@ -879,7 +879,7 @@ class BaseTranscriptionPipeline(ABC):
             cached_yaml["whisper"]["suppress_tokens"] = str(supress_token)
 
         if cached_yaml["whisper"].get("lang", None) is None:
-            cached_yaml["whisper"]["lang"] = AUTOMATIC_DETECTION.unwrap()
+            cached_yaml["whisper"]["lang"] = AUTOMATIC_DETECTION
         else:
             language_dict = whisper.tokenizer.LANGUAGES
             cached_yaml["whisper"]["lang"] = language_dict[cached_yaml["whisper"]["lang"]]
