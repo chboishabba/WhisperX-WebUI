@@ -489,7 +489,7 @@ class App:
     ):
         if not self.live_streaming_available:
             return (_("Live transcription is unavailable because no audio device was detected."), "",
-                    gr.Files.update(value=[]))
+                    gr.update(files=[]))
 
         with self._live_session_lock:
             if self.live_session and self.live_session.is_active():
@@ -524,7 +524,7 @@ class App:
             self.live_session = session
 
         status = _("Live transcription started ({device}).").format(device=device_label)
-        return status, "", gr.Files.update(value=[])
+        return status, "", gr.update(files=[])
 
     def _stop_live_transcription(self):
         with self._live_session_lock:
@@ -532,7 +532,7 @@ class App:
             self.live_session = None
 
         if not session or not session.is_active():
-            return (_("Live transcription is not running."), "", gr.Files.update(value=[]))
+            return (_("Live transcription is not running."), "", gr.update(files=[]))
 
         try:
             _, path = session.stop()
@@ -542,7 +542,7 @@ class App:
             path = None
 
         transcript = session.get_transcript_text()
-        files_update = gr.Files.update(value=[path]) if path else gr.Files.update(value=[])
+        files_update = gr.update(files=[path]) if path else gr.update(files=[])
         return status, transcript, files_update
 
     def _poll_live_transcription(self):
