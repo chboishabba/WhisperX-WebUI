@@ -3,6 +3,7 @@ import whisper
 import ctranslate2
 import gradio as gr
 import torchaudio
+import torch
 from abc import ABC, abstractmethod
 from typing import BinaryIO, Optional, Union, Tuple, List, Callable
 import threading
@@ -69,6 +70,12 @@ class BaseTranscriptionPipeline(ABC):
     def _check_cancelled(self) -> None:
         if self.cancel_event and self.cancel_event.is_set():
             raise gr.Error("Transcription cancelled")
+
+    def _handle_runtime_error_cleanup(self, error: Exception) -> None:
+        message = str(error).lower()
+        if "out of memory" in message:
+            logger.warning("Detected OOM during transcription; offloading models to free memory.")
+            self.offload()
 
     @staticmethod
     def _iter_file_paths(files: Optional[Union[List, Tuple, str]]):
@@ -524,6 +531,7 @@ class BaseTranscriptionPipeline(ABC):
         except gr.Error:
             raise
         except Exception as e:
+            self._handle_runtime_error_cleanup(e)
             raise RuntimeError(f"Error transcribing file: {e}") from e
 
     @staticmethod
@@ -637,6 +645,7 @@ class BaseTranscriptionPipeline(ABC):
         except gr.Error:
             raise
         except Exception as e:
+            self._handle_runtime_error_cleanup(e)
             raise RuntimeError(f"Error transcribing mic: {e}") from e
 
     def transcribe_youtube(
@@ -727,6 +736,7 @@ class BaseTranscriptionPipeline(ABC):
         except gr.Error:
             raise
         except Exception as e:
+            self._handle_runtime_error_cleanup(e)
             raise RuntimeError(f"Error transcribing youtube: {e}") from e
 
     def get_compute_type(self):

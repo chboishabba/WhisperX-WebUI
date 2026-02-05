@@ -123,7 +123,8 @@ class SileroVAD:
         )
         # faster-whisper VAD expects a 2D array shaped as (batch_size, num_samples)
         padded_audio = np.expand_dims(padded_audio, axis=0)
-        speech_probs = np.squeeze(self.model(padded_audio))
+        # Guard against scalar outputs for very short inputs.
+        speech_probs = np.atleast_1d(np.squeeze(np.asarray(self.model(padded_audio))))
 
         triggered = False
         speeches = []
@@ -284,4 +285,3 @@ class SileroVAD:
                 segment.end = ts_map.get_original_time(segment.end)
 
         return segments
-
