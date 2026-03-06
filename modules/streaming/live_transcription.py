@@ -4,6 +4,10 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 import numpy as np
+try:
+    from scipy.signal import resample
+except Exception:
+    resample = None
 
 from modules.utils.logger import get_logger
 from modules.utils.subtitle_manager import generate_file
@@ -176,6 +180,8 @@ class LiveTranscriptionSession:
         self._final_file_path: Optional[str] = None
         self._final_content: Optional[str] = None
         self._active = False
+        self._latest_audio: Optional[np.ndarray] = None
+        self._latest_audio_lock = threading.Lock()
 
     def start(self):
         if self._active:
@@ -248,6 +254,12 @@ class LiveTranscriptionSession:
     def get_file_path(self) -> Optional[str]:
         return self._final_file_path
 
+    def get_latest_audio(self) -> Optional[np.ndarray]:
+        with self._latest_audio_lock:
+            if self._latest_audio is None:
+                return None
+            return self._latest_audio.copy()
+
     def _get_segments_snapshot(self) -> List[Segment]:
         with self._segments_lock:
             return [Segment(**seg.model_dump()) for seg in self._segments]
@@ -267,6 +279,7 @@ class LiveTranscriptionSession:
             if block.size == 0:
                 continue
 
+            self._update_latest_audio(block)
             buffer.append(block)
             buffer_samples += block.size
             if buffer_samples >= chunk_samples:
@@ -323,8 +336,121 @@ class LiveTranscriptionSession:
         self._processed_time += duration
         self._chunk_count += 1
 
+    def _update_latest_audio(self, block: np.ndarray) -> None:
+        with self._latest_audio_lock:
+            self._latest_audio = block.copy()
+
     @staticmethod
     def _flatten_to_mono(audio: np.ndarray) -> np.ndarray:
         if audio.ndim == 1:
             return audio.reshape(-1)
         return audio.mean(axis=1)
+
+
+class BrowserLiveTranscriptionSession(LiveTranscriptionSession):
+    """Live transcription session that ingests audio streamed from the browser."""
+
+    def __init__(
+        self,
+        pipeline: BaseTranscriptionPipeline,
+        pipeline_params: TranscriptionPipelineParams,
+        chunk_seconds: float,
+        sample_rate: int = 16000,
+        channels: int = 1,
+        file_format: str = "SRT",
+        add_timestamp: bool = False,
+    ):
+        super().__init__(
+            pipeline=pipeline,
+            pipeline_params=pipeline_params,
+            chunk_seconds=chunk_seconds,
+            sample_rate=sample_rate,
+            channels=channels,
+            device_index=None,
+            loopback=False,
+            file_format=file_format,
+            add_timestamp=add_timestamp,
+        )
+        self._buffer: List[np.ndarray] = []
+        self._buffer_samples = 0
+        self._chunk_samples = max(1, int(self.chunk_seconds * self.sample_rate))
+
+    def start(self):
+        if self._active:
+            raise LiveTranscriptionError("Live transcription is already running.")
+        self._buffer = []
+        self._buffer_samples = 0
+        self._chunk_samples = max(1, int(self.chunk_seconds * self.sample_rate))
+        self._segments = []
+        self._processed_time = 0.0
+        self._chunk_count = 0
+        self._final_file_path = None
+        self._final_content = None
+        with self._latest_audio_lock:
+            self._latest_audio = None
+        self._active = True
+
+    def ingest_audio(self, audio: np.ndarray, sample_rate: int) -> None:
+        if not self._active:
+            return
+        if audio is None:
+            return
+        block = self._flatten_to_mono(audio)
+        if block.size == 0:
+            return
+        block = self._resample_audio(block, sample_rate)
+        if block.size == 0:
+            return
+
+        self._update_latest_audio(block)
+        self._buffer.append(block)
+        self._buffer_samples += block.size
+        while self._buffer_samples >= self._chunk_samples:
+            chunk = self._drain_buffer(self._buffer, self._chunk_samples)
+            self._process_chunk(chunk)
+            self._buffer_samples = sum(arr.size for arr in self._buffer)
+
+    def stop(self) -> Tuple[str, Optional[str]]:
+        if not self._active:
+            raise LiveTranscriptionError("Live transcription is not running.")
+
+        self._active = False
+        if self._buffer_samples > 0 and self._buffer:
+            chunk = np.concatenate(self._buffer)
+            self._process_chunk(chunk)
+            self._buffer = []
+            self._buffer_samples = 0
+
+        writer_options = {
+            "highlight_words": bool(self.pipeline_params.whisper.word_timestamps),
+            "include_confidence": bool(getattr(self.pipeline_params.whisper, "show_confidence", False)),
+        }
+        segments = self._get_segments_snapshot()
+        if not segments:
+            segments = [Segment()]
+
+        content, path = generate_file(
+            output_dir=self.pipeline.output_dir,
+            output_file_name="LiveTranscript",
+            output_format=self.file_format,
+            result=segments,
+            add_timestamp=self.add_timestamp,
+            options=writer_options,
+        )
+        self._final_content = content
+        self._final_file_path = path
+        return content, path
+
+    def _resample_audio(self, audio: np.ndarray, source_rate: int) -> np.ndarray:
+        if source_rate == self.sample_rate:
+            return audio
+        if source_rate <= 0:
+            return np.array([], dtype=np.float32)
+        target_length = int(round(audio.shape[0] * self.sample_rate / source_rate))
+        if target_length <= 0:
+            return np.array([], dtype=np.float32)
+        if resample is None:
+            old_x = np.linspace(0.0, 1.0, num=audio.shape[0], endpoint=False)
+            new_x = np.linspace(0.0, 1.0, num=target_length, endpoint=False)
+            return np.interp(new_x, old_x, audio).astype(np.float32)
+        return resample(audio, target_length).astype(np.float32)
