@@ -1,5 +1,5 @@
 whisper:
-  model_size: tiny
+  model_size: medium.en
   lang: Automatic Detection
   is_translate: false
   beam_size: 5
