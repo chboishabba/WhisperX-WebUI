@@ -71,6 +71,11 @@ class Diarizer:
                 compute_type=compute_type,
             )
 
+        if self.pipe is None:
+            raise RuntimeError(
+                "Diarization pipeline is not initialized. Verify Hugging Face access and retry."
+            )
+
         audio = load_audio(audio)
 
         diarization_segments = self.pipe(audio)
@@ -135,22 +140,29 @@ class Diarizer:
 
         if (not os.listdir(self.model_dir) and
                 not use_auth_token):
-            print(
-                "\nFailed to diarize. You need huggingface token and agree to their requirements to download the diarization model.\n"
-                "Go to \"https://huggingface.co/pyannote/speaker-diarization-3.1\" and follow their instructions to download the model.\n"
+            raise RuntimeError(
+                "Failed to diarize. You need a Hugging Face token and must accept the model terms to download the diarization pipeline. "
+                "Visit https://huggingface.co/pyannote/speaker-diarization-3.1 to grant access, then provide the token."
             )
-            return
 
         logger = logging.getLogger("speechbrain.utils.train_logger")
         # Disable redundant torchvision warning message
         logger.disabled = True
-        self.pipe = DiarizationPipeline(
-            use_auth_token=use_auth_token,
-            device=device,
-            cache_dir=self.model_dir,
-            compute_type=self.compute_type,
-        )
-        logger.disabled = False
+        try:
+            self.pipe = DiarizationPipeline(
+                use_auth_token=use_auth_token,
+                device=device,
+                cache_dir=self.model_dir,
+                compute_type=self.compute_type,
+            )
+        except Exception as exc:
+            self.pipe = None
+            raise RuntimeError(
+                "Failed to initialize the diarization pipeline. "
+                "Ensure the Hugging Face model access is granted and dependencies match the trained versions."
+            ) from exc
+        finally:
+            logger.disabled = False
 
     def offload(self):
         """Offload the model and free up the memory"""
