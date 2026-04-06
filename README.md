@@ -85,6 +85,57 @@ docker compose up
 
 If needed, update the [`docker-compose.yaml`](https://github.com/chboishabba/WhisperX-WebUI/blob/master/docker-compose.yaml) to match your environment.
 
+- ## Optional local Nix wrapper for gfx803 / Polaris
+
+The primary gfx803-specific compatibility flake now lives in:
+
+`/home/c/Documents/code/__OTHER/gfx803_compat_graph`
+
+This repository also ships a local convenience `flake.nix`. It is intentionally wired to the extracted ROCm runtime and helper scripts in:
+
+`/home/c/Documents/code/__OTHER/gfx803_compat_graph`
+
+That means this flake is host-local by design: it launches WhisperX-WebUI from this repository, but it uses the extracted compatibility runtime, `lib-compat/`, and `docker-venv/` from the gfx803 compatibility project rather than creating a second Python environment here.
+
+If you want the canonical gfx803 entrypoint, use the compatibility repo directly:
+
+```sh
+cd /home/c/Documents/code/__OTHER/gfx803_compat_graph
+nix develop .#whisperx-webui-gfx803
+start-whisperx-webui-gfx803 --server_name 0.0.0.0 --server_port 7860
+```
+
+1. Make sure the compatibility repo already has its extracted runtime materialized (`lib-compat/` and `docker-venv/`).
+2. Enter the shell:
+
+```sh
+nix develop
+```
+
+3. Optionally warm the Silero VAD cache into this repo's local `.cache/torch`:
+
+```sh
+bootstrap-whisperx-webui-silero-cache
+```
+
+4. Start the WebUI through the extracted ROCm Python:
+
+```sh
+start-whisperx-webui-gfx803 --server_name 0.0.0.0 --server_port 7860
+```
+
+You can also run it directly without entering the shell:
+
+```sh
+nix run .#webui -- --server_name 0.0.0.0 --server_port 7860
+```
+
+For a quick environment check:
+
+```sh
+nix run .#verify-runtime
+```
+
 - ## Run Locally
 
 ### Prerequisite
