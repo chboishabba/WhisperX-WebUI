@@ -7,6 +7,14 @@ import numpy as np
 from gradio_i18n import Translate, gettext as _
 import yaml
 import re
+import torch
+import omegaconf
+
+# --- PYTORCH 2.6+ PYANNOTE SECURITY FIX ---
+# Pyannote weights use omegaconf.listconfig.ListConfig.
+# We must explicitly tell PyTorch it is safe to load.
+torch.serialization.add_safe_globals([omegaconf.listconfig.ListConfig])
+# ------------------------------------------
 
 from modules.utils.paths import (FASTER_WHISPER_MODELS_DIR, DIARIZATION_MODELS_DIR, OUTPUT_DIR, WHISPER_MODELS_DIR,
                                  INSANELY_FAST_WHISPER_MODELS_DIR, NLLB_MODELS_DIR, WHISPERX_MODELS_DIR,
