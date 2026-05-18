@@ -62,7 +62,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
 
-    python_path = Path(args.python).resolve()
+    # Intentionally NOT using .resolve() - it follows venv symlinks to system Python
+    python_path = Path(args.python)
     if not python_path.exists():
         raise InstallError(f"Python interpreter not found: {python_path}")
 
