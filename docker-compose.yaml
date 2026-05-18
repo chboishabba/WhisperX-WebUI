@@ -2,15 +2,12 @@ services:
   whisper-webui:
     container_name: whisper-webui
     build: .
-    image: jhj0517/whisper-webui:latest
-
+    # Removed the 'image' tag so it doesn't conflict with your local build
+    
     volumes:
-      # You can mount the container's volume paths to directory paths on your local machine.
-      # Models will be stored in the `./models' directory on your machine.
-      # Similarly, all output files will be stored in the `./outputs` directory.
-      - ./models:/Whisper-WebUI/models
-      - ./outputs:/Whisper-WebUI/outputs
-      - ./configs:/Whisper-WebUI/configs
+      - ./models:/app/models
+      - ./outputs:/app/outputs
+      - ./configs:/app/configs
 
     ports:
       - "7860:7860"
@@ -18,11 +15,10 @@ services:
     stdin_open: true
     tty: true
 
-    entrypoint: ["python", "app.py", "--server_port", "7860", "--server_name", "0.0.0.0",]
+    environment:
+      - COMMANDLINE_ARGS=--server_port 7860 --server_name 0.0.0.0
+      - TORCH_FORCE_WEIGHTS_ONLY_LOAD=0
 
-    # If you're not using nvidia GPU, Update device to match yours.
-    # See more info at : https://docs.docker.com/compose/compose-file/deploy/#driver
-    # You can remove the entire `deploy' section if you are using CPU.
     deploy:
       resources:
         reservations:
