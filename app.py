@@ -545,6 +545,12 @@ class App:
             return session.get_transcript_text(), session.get_status(), None
 
         sample_rate, data = audio
+        
+        # --- NEW SAFEGUARD: Force stereo mic inputs to mono ---
+        if isinstance(data, np.ndarray) and data.ndim > 1:
+            data = data.mean(axis=1)
+        # ------------------------------------------------------
+        
         try:
             session.ingest_audio(data, int(sample_rate))
         except Exception as exc:

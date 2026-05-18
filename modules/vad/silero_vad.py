@@ -121,10 +121,18 @@ class SileroVAD:
         padded_audio = np.pad(
             audio, (0, window_size_samples - audio.shape[0] % window_size_samples)
         )
-        # faster-whisper VAD expects a 2D array shaped as (batch_size, num_samples)
-        padded_audio = np.expand_dims(padded_audio, axis=0)
+        
+        # --- THE FIX ---
+        # faster_whisper >= 1.0.0 strictly asserts audio must be 1D. 
+        # Do NOT expand dimensions to 2D before passing to the model.
+        
+        # Ensure it is definitively 1D
+        if padded_audio.ndim > 1:
+            padded_audio = np.squeeze(padded_audio)
+            
         # Guard against scalar outputs for very short inputs.
         speech_probs = np.atleast_1d(np.squeeze(np.asarray(self.model(padded_audio))))
+        # ---------------
 
         triggered = False
         speeches = []

@@ -200,9 +200,36 @@ class BaseTranscriptionPipeline(ABC):
 
         self._check_cancelled()
 
+        # === THE BULLETPROOF AUDIO LOADER ===
+        # Ensure audio is loaded and definitively converted to a 1D, 16kHz numpy array
+        if isinstance(audio, (str, bytes)):
+            # Load from file path using torchaudio
+            waveform, sample_rate = torchaudio.load(audio)
+            # Force mono by averaging channels if stereo
+            if waveform.shape[0] > 1:
+                waveform = torch.mean(waveform, dim=0, keepdim=True)
+            # Resample to 16000Hz (Whisper/Silero requirement)
+            if sample_rate != 16000:
+                resampler = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=16000)
+                waveform = resampler(waveform)
+            # Convert to 1D numpy array
+            audio = waveform.squeeze().numpy()
+            if audio.ndim > 1:
+                audio = audio.flatten()
+            
+        elif isinstance(audio, np.ndarray):
+            # Fallback for Gradio Mic / UVR outputs
+            if audio.ndim > 1:
+                # Average channels
+                audio = audio.mean(axis=1) if audio.shape[1] < audio.shape[0] else audio.mean(axis=0)
+            audio = audio.flatten()
+            
+        # Make a copy for diarization (Pyannote) to use later
         origin_audio = deepcopy(audio)
+        # ====================================
 
         use_whisperx_alignment = getattr(whisper_params, "enable_whisperx_alignment", False)
+        
         use_whisperx_diarization = (
             diarization_params.is_diarize and getattr(diarization_params, "use_whisperx_diarization", False)
         )
