@@ -8,6 +8,20 @@ import numpy as np
 import pandas as pd
 import torch
 
+# --- HUGGINGFACE HUB COMPATIBILITY PATCH ---
+# Newer versions of huggingface_hub removed 'use_auth_token', but pyannote still uses it.
+# We intercept the call and rename the argument to 'token' to prevent crashes.
+import huggingface_hub
+_original_hf_hub_download = huggingface_hub.hf_hub_download
+
+def _patched_hf_hub_download(*args, **kwargs):
+    if 'use_auth_token' in kwargs:
+        kwargs['token'] = kwargs.pop('use_auth_token')
+    return _original_hf_hub_download(*args, **kwargs)
+
+huggingface_hub.hf_hub_download = _patched_hf_hub_download
+# -------------------------------------------
+
 try:
     import torchaudio
 except ImportError:  # pragma: no cover - torchaudio is expected in production installs
