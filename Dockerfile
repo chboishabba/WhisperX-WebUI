@@ -1,18 +1,25 @@
-FROM chboi/gfx803_whisperx_webui:latest
+# 1. Use official NVIDIA CUDA 12.6 image
+FROM nvidia/cuda:12.6.2-cudnn-runtime-ubuntu22.04
 
-# 1. Set working directory
-WORKDIR /opt/whisperx_webui
+# 2. Install system dependencies + Build Tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 python3-pip python3-setuptools python3-dev git ffmpeg libportaudio2 \
+    && rm -rf /var/lib/apt/lists/*
 
-# 2. Force-update the code to your latest GitHub fix
-# We use 'reset' to make sure no local container junk blocks the pull
-RUN git fetch --all && git reset --hard origin/master
+# Alias python3 to python
+RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# 3. Ensure the environment is correctly patched
-# Numba (pulled by Whisper) requires NumPy < 2.3.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends --no-upgrade libportaudio2 python3-filelock || true \
-    && rm -rf /var/lib/apt/lists/* \
-    && /Whisper-WebUI/venv/bin/pip install "gradio>=5.0,<6.0" "numpy<2.3" "gradio-i18n" --upgrade --no-cache-dir
+# 3. Set working directory
+WORKDIR /app
 
-# 4. Set the default startup command
-ENTRYPOINT ["/bin/bash", "-c", "if [ -d .git ]; then git pull --rebase --autostash || true; fi && source /Whisper-WebUI/venv/bin/activate && python -c \"import numpy as np, sys; major, minor = (int(p) for p in np.__version__.split('.')[:2]); sys.exit(0 if (major, minor) < (2, 3) else 1)\" || /Whisper-WebUI/venv/bin/pip install --force-reinstall \"numpy<2.3\" \"numba\" --no-cache-dir && python app.py ${COMMANDLINE_ARGS}"]
+# 4. Copy the repository files
+COPY . /app
+
+# 5. Upgrade pip, setuptools, and wheel FIRST so git repos compile correctly
+RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# 6. Install dependencies
+RUN python -m pip install --no-cache-dir -r requirements.txt
+
+# 7. Set the default startup command
+ENTRYPOINT ["/bin/bash", "-c", "python app.py ${COMMANDLINE_ARGS}"]
