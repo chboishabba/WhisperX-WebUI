@@ -1,33 +1,20 @@
 --extra-index-url https://download.pytorch.org/whl/cu126
 
-# Update above --extra-index-url according to your device.
-
-## Nvidia GPU
-# CUDA 12.6 : https://download.pytorch.org/whl/cu126
-# CUDA 12.8 : https://download.pytorch.org/whl/cu128
-
-## Intel GPU
-# https://download.pytorch.org/whl/xpu
-
-openai_whisper
 dotenv
 torch
-# Numba requires NumPy < 2.3; Whisper pulls numba for word timings.
+torchaudio==2.7.1
 numpy<2.3
-# torchaudio 2.8+ removed AudioMetaData which our diarization pipeline imports
-torchaudio
 sounddevice
 openai-whisper
 faster-whisper
 ctranslate2
 transformers
-gradio
+gradio>=5.0,<6.0
 gradio-i18n
 pytubefix
 ruamel.yaml
 sqlmodel
 pyannote.audio
-openai_whisper
 whisperx
 jiwer
 onnxruntime-gpu
